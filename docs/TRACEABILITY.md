@@ -13,10 +13,10 @@ Acceptance criteria from `specs/001-meeting-cost-calculator.md`. "Task" is pre-f
 | AC-7 | US-3 | Breakdown by role (£120.00 + £80.00) adds up to total | 2, 11 | `src/domain/meeting.test.ts` (domain only; table in task 11) | `src/domain/meeting.ts` |
 | AC-8 | US-2 | No roles: prompt to add a role first | 9 | | |
 | AC-9 | US-2 | Invalid headcount, hours, minutes or zero duration shows error, no cost | 4, 10 | | |
-| AC-10 | US-4 | Weekly £200.00 → £866.67 monthly, £10,400.00 yearly | 3, 12 | | |
-| AC-11 | US-4 | Occurrences per year 260 / 52 / 26 / 12; monthly = yearly ÷ 12 | 3, 12 | | |
-| AC-12 | US-4 | Daily counts weekdays only; holidays ignored | 3, 12 | | |
-| AC-13 | US-4 | Non-recurring shows per-occurrence cost only | 3, 12 | | |
+| AC-10 | US-4 | Weekly £200.00 → £866.67 monthly, £10,400.00 yearly | 3, 12 | `src/domain/recurrence.test.ts` (domain only; UI in task 12) | `src/domain/recurrence.ts` |
+| AC-11 | US-4 | Occurrences per year 260 / 52 / 26 / 12; monthly = yearly ÷ 12 | 3, 12 | `src/domain/recurrence.test.ts` (domain only; UI in task 12) | `src/domain/recurrence.ts` |
+| AC-12 | US-4 | Daily counts weekdays only; holidays ignored | 3, 12 | `src/domain/recurrence.test.ts` (domain only; UI in task 12) | `src/domain/recurrence.ts` |
+| AC-13 | US-4 | Non-recurring shows per-occurrence cost only | 3, 12 | `src/domain/recurrence.test.ts` (domain only; UI in task 12) | `src/domain/recurrence.ts` |
 | AC-14 | US-5 | Default currency is pounds sterling (£) | 5, 13 | | |
 | AC-15 | US-5 | Changing currency changes the symbol only, not the numbers | 5, 13 | | |
 | AC-16 | US-5 | Displayed costs rounded to 2 dp; no intermediate rounding | 5, 13 | | |
