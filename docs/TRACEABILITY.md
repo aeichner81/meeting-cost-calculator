@@ -17,16 +17,16 @@ Acceptance criteria from `specs/001-meeting-cost-calculator.md`. "Task" is pre-f
 | AC-11 | US-4 | Occurrences per year 260 / 52 / 26 / 12; monthly = yearly ÷ 12 | 3, 12 | `src/domain/recurrence.test.ts` (domain only; UI in task 12) | `src/domain/recurrence.ts` |
 | AC-12 | US-4 | Daily counts weekdays only; holidays ignored | 3, 12 | `src/domain/recurrence.test.ts` (domain only; UI in task 12) | `src/domain/recurrence.ts` |
 | AC-13 | US-4 | Non-recurring shows per-occurrence cost only | 3, 12 | `src/domain/recurrence.test.ts` (domain only; UI in task 12) | `src/domain/recurrence.ts` |
-| AC-14 | US-5 | Default currency is pounds sterling (£) | 5, 13 | | |
-| AC-15 | US-5 | Changing currency changes the symbol only, not the numbers | 5, 13 | | |
-| AC-16 | US-5 | Displayed costs rounded to 2 dp; no intermediate rounding | 5, 13 | | |
+| AC-14 | US-5 | Default currency is pounds sterling (£) | 5, 13 | `src/domain/currency.test.ts` (domain only; UI in task 13) | `src/domain/currency.ts` |
+| AC-15 | US-5 | Changing currency changes the symbol only, not the numbers | 5, 13 | `src/domain/currency.test.ts` (domain only; UI in task 13) | `src/domain/currency.ts` |
+| AC-16 | US-5 | Displayed costs rounded to 2 dp; no intermediate rounding | 5, 13 | `src/domain/currency.test.ts` (domain only; UI in task 13) | `src/domain/currency.ts` |
 | AC-17 | US-6 | Roles, salaries and currency persist across reopen | 6, 13, 14 | | |
 | AC-18 | US-6 | No salary, role or meeting data sent to any server | 6, 14 | | |
 | AC-19 | US-6 | Storage unavailable: app works with empty list and says so | 6, 14 | | |
 | AC-20 | US-7 | Phone-sized screen: all tasks without horizontal scrolling | 15, 16 | | |
 | AC-21 | US-2 | 2 × £20.00 for 1h 30m = £60.00 | 2, 10 | `src/domain/meeting.test.ts` (domain only; UI in task 10) | `src/domain/meeting.ts` |
 | AC-22 | US-2 | Adding an existing role merges into one line (3 + 2 = 5) | 9 | | |
-| AC-23 | US-5 | Currency selector offers exactly GBP, USD, CAD, EUR | 5, 13 | | |
+| AC-23 | US-5 | Currency selector offers exactly GBP, USD, CAD, EUR | 5, 13 | `src/domain/currency.test.ts` (domain only; UI in task 13) | `src/domain/currency.ts` |
 | AC-24 | US-6 | Meeting lines, duration and recurrence cleared on reopen | 14 | | |
 
 ## Accessibility baseline (spec section 5)
