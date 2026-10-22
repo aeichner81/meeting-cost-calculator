@@ -74,6 +74,27 @@ describe('RoleForm', () => {
     )
   })
 
+  // AC-3
+  it('can be prefilled, relabel its submit button and offer Cancel', async () => {
+    const onCancel = vi.fn()
+    const user = userEvent.setup()
+    render(
+      <RoleForm
+        onAdd={() => {}}
+        initialName="Developer"
+        initialSalary={36400}
+        submitLabel="Save"
+        onCancel={onCancel}
+      />,
+    )
+    expect(screen.getByLabelText('Role name')).toHaveValue('Developer')
+    expect(screen.getByLabelText('Annual salary')).toHaveValue('36400')
+    expect(screen.queryByRole('button', { name: 'Add role' })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(onCancel).toHaveBeenCalled()
+  })
+
   it('clears errors after a valid submit', async () => {
     const user = userEvent.setup()
     render(<RoleForm onAdd={() => {}} />)

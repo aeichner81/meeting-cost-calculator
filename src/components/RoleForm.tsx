@@ -1,10 +1,17 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import type { FormEvent } from 'react'
 import { validateRoleName, validateSalary } from '../domain/validation'
 import styles from './RoleForm.module.css'
 
 interface RoleFormProps {
   onAdd: (name: string, annualSalary: number) => void
+  // The props below turn the add form into an edit form (AC-3).
+  initialName?: string
+  initialSalary?: number
+  submitLabel?: string
+  onCancel?: () => void
+  // Names the form as a landmark; needed when several forms share a page.
+  label?: string
 }
 
 interface FieldErrors {
@@ -12,9 +19,19 @@ interface FieldErrors {
   salary?: string
 }
 
-export function RoleForm({ onAdd }: RoleFormProps) {
-  const [name, setName] = useState('')
-  const [salary, setSalary] = useState('')
+export function RoleForm({
+  onAdd,
+  initialName = '',
+  initialSalary,
+  submitLabel = 'Add role',
+  onCancel,
+  label,
+}: RoleFormProps) {
+  const idPrefix = useId()
+  const nameId = `${idPrefix}-name`
+  const salaryId = `${idPrefix}-salary`
+  const [name, setName] = useState(initialName)
+  const [salary, setSalary] = useState(initialSalary === undefined ? '' : String(initialSalary))
   const [errors, setErrors] = useState<FieldErrors>({})
 
   function handleSubmit(event: FormEvent) {
@@ -37,41 +54,46 @@ export function RoleForm({ onAdd }: RoleFormProps) {
   }
 
   return (
-    <form className={styles.form} onSubmit={handleSubmit} noValidate>
+    <form className={styles.form} onSubmit={handleSubmit} aria-label={label} noValidate>
       <div className={styles.field}>
-        <label htmlFor="role-name">Role name</label>
+        <label htmlFor={nameId}>Role name</label>
         <input
-          id="role-name"
+          id={nameId}
           type="text"
           value={name}
           onChange={(event) => setName(event.target.value)}
           aria-invalid={errors.name ? true : undefined}
-          aria-describedby={errors.name ? 'role-name-error' : undefined}
+          aria-describedby={errors.name ? `${nameId}-error` : undefined}
         />
         {errors.name && (
-          <p id="role-name-error" className={styles.error}>
+          <p id={`${nameId}-error`} className={styles.error}>
             {errors.name}
           </p>
         )}
       </div>
       <div className={styles.field}>
-        <label htmlFor="role-salary">Annual salary</label>
+        <label htmlFor={salaryId}>Annual salary</label>
         <input
-          id="role-salary"
+          id={salaryId}
           type="text"
           inputMode="decimal"
           value={salary}
           onChange={(event) => setSalary(event.target.value)}
           aria-invalid={errors.salary ? true : undefined}
-          aria-describedby={errors.salary ? 'role-salary-error' : undefined}
+          aria-describedby={errors.salary ? `${salaryId}-error` : undefined}
         />
         {errors.salary && (
-          <p id="role-salary-error" className={styles.error}>
+          <p id={`${salaryId}-error`} className={styles.error}>
             {errors.salary}
           </p>
         )}
       </div>
-      <button type="submit">Add role</button>
+      <button type="submit">{submitLabel}</button>
+      {onCancel && (
+        <button type="button" onClick={onCancel}>
+          Cancel
+        </button>
+      )}
     </form>
   )
 }

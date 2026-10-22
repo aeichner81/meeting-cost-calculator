@@ -52,3 +52,60 @@ describe('roles (AC-1, AC-4)', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Roles' })).toBeInTheDocument()
   })
 })
+
+describe('edit and delete roles (AC-3)', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  async function addRole(user: ReturnType<typeof userEvent.setup>, name: string, salary: string) {
+    await user.type(screen.getByLabelText('Role name'), name)
+    await user.type(screen.getByLabelText('Annual salary'), salary)
+    await user.click(screen.getByRole('button', { name: 'Add role' }))
+  }
+
+  it('shows an edited role in the list and keeps it after a reload', async () => {
+    const user = userEvent.setup()
+    const { unmount } = render(<App />)
+    await addRole(user, 'Developer', '36400')
+
+    await user.click(screen.getByRole('button', { name: 'Edit Developer' }))
+    const form = screen.getByRole('form', { name: 'Edit Developer' })
+    await user.clear(within(form).getByLabelText('Annual salary'))
+    await user.type(within(form).getByLabelText('Annual salary'), '40000')
+    await user.click(within(form).getByRole('button', { name: 'Save' }))
+
+    expect(screen.getByText('£40,000.00')).toBeInTheDocument()
+    expect(screen.queryByText('£36,400.00')).not.toBeInTheDocument()
+
+    unmount()
+    render(<App />)
+    expect(screen.getByText('£40,000.00')).toBeInTheDocument()
+  })
+
+  it('removes a deleted role from the list and from storage', async () => {
+    const user = userEvent.setup()
+    const { unmount } = render(<App />)
+    await addRole(user, 'Developer', '36400')
+    await addRole(user, 'Manager', '52000')
+
+    await user.click(screen.getByRole('button', { name: 'Delete Developer' }))
+
+    const list = screen.getByRole('list')
+    expect(within(list).queryByText('Developer')).not.toBeInTheDocument()
+    expect(within(list).getByText('Manager')).toBeInTheDocument()
+
+    unmount()
+    render(<App />)
+    expect(screen.queryByText('Developer')).not.toBeInTheDocument()
+    expect(screen.getByText('Manager')).toBeInTheDocument()
+  })
+
+  it('shows the empty state after the last role is deleted', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await addRole(user, 'Developer', '36400')
+    await user.click(screen.getByRole('button', { name: 'Delete Developer' }))
+    expect(screen.getByText('No roles yet.')).toBeInTheDocument()
+  })
+})
