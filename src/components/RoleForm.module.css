@@ -1,0 +1,23 @@
+.form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.error {
+  margin: 0;
+  color: #b00020;
+}
+
+.error::before {
+  content: 'Error: ';
+  font-weight: bold;
+}
