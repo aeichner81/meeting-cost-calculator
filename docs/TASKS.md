@@ -3,7 +3,7 @@
 Build in order, one task at a time. Each task: tests first for its criteria, then code; stop when tests, lint and build pass. Tick the box and update `TRACEABILITY.md` when done.
 
 - [x] **1. Scaffold and deploy.** Vite + React + TS, Vitest + RTL, ESLint, `npm` scripts (`dev`, `test`, `build`, `lint`); GitHub Pages deploy workflow; page skeleton with `lang`, one `h1` and a `main` landmark. Covers: infrastructure, A11Y-7 (skeleton).
-- [ ] **2. Domain: costs.** Hourly rate, duration in hours, line and total cost, per-role breakdown. Covers: AC-2, AC-6, AC-7, AC-21.
+- [x] **2. Domain: costs.** Hourly rate, duration in hours, line and total cost, per-role breakdown. Covers: AC-2, AC-6, AC-7, AC-21.
 - [ ] **3. Domain: recurrence.** Occurrences per year, yearly and monthly cost; "once" has no figures. Covers: AC-10, AC-11, AC-12, AC-13.
 - [ ] **4. Domain: validation.** Salary and meeting-input validation with per-field errors. Covers: AC-4, AC-9.
 - [ ] **5. Domain: currency.** Currency list and `formatMoney`, rounding to 2 dp at display only. Covers: AC-14, AC-15, AC-16, AC-23.
