@@ -10,11 +10,18 @@ export type MeetingField = 'headcount' | 'hours' | 'minutes' | 'duration'
 
 export type MeetingErrors = Partial<Record<MeetingField, string>>
 
-export interface MeetingInput {
-  headcount: string
+export interface DurationInput {
   hours: string
   minutes: string
 }
+
+export interface MeetingInput extends DurationInput {
+  headcount: string
+}
+
+export type DurationResult =
+  | { ok: true; value: Duration }
+  | { ok: false; errors: MeetingErrors }
 
 export interface ValidMeeting {
   headcount: number
@@ -88,13 +95,8 @@ function parseOptionalWholeNumber(text: string): number | null {
   return text.trim() === '' ? 0 : parseWholeNumber(text)
 }
 
-export function validateMeetingInput(input: MeetingInput): MeetingResult {
+export function validateDuration(input: DurationInput): DurationResult {
   const errors: MeetingErrors = {}
-
-  const headcountResult = validateHeadcount(input.headcount)
-  if (!headcountResult.ok) {
-    errors.headcount = headcountResult.error
-  }
 
   const hours = parseOptionalWholeNumber(input.hours)
   if (hours === null) {
@@ -111,8 +113,26 @@ export function validateMeetingInput(input: MeetingInput): MeetingResult {
     errors.duration = DURATION_ERROR
   }
 
-  if (!headcountResult.ok || hours === null || minutes === null || Object.keys(errors).length > 0) {
+  if (hours === null || minutes === null || Object.keys(errors).length > 0) {
     return { ok: false, errors }
   }
-  return { ok: true, value: { headcount: headcountResult.value, duration: { hours, minutes } } }
+  return { ok: true, value: { hours, minutes } }
+}
+
+export function validateMeetingInput(input: MeetingInput): MeetingResult {
+  const headcountResult = validateHeadcount(input.headcount)
+  const durationResult = validateDuration(input)
+
+  const errors: MeetingErrors = {}
+  if (!headcountResult.ok) {
+    errors.headcount = headcountResult.error
+  }
+  if (!durationResult.ok) {
+    Object.assign(errors, durationResult.errors)
+  }
+
+  if (!headcountResult.ok || !durationResult.ok) {
+    return { ok: false, errors }
+  }
+  return { ok: true, value: { headcount: headcountResult.value, duration: durationResult.value } }
 }

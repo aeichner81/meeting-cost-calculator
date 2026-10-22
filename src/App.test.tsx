@@ -130,6 +130,71 @@ describe('meeting builder (AC-5, AC-8, AC-22)', () => {
   })
 })
 
+describe('duration and calculate (AC-5, AC-6, AC-21)', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  async function addRole(user: ReturnType<typeof userEvent.setup>, name: string, salary: string) {
+    await user.type(screen.getByLabelText('Role name'), name)
+    await user.type(screen.getByLabelText('Annual salary'), salary)
+    await user.click(screen.getByRole('button', { name: 'Add role' }))
+  }
+
+  async function addToMeeting(
+    user: ReturnType<typeof userEvent.setup>,
+    role: string,
+    headcount: string,
+  ) {
+    await user.selectOptions(screen.getByLabelText('Role'), role)
+    await user.clear(screen.getByLabelText('Headcount'))
+    await user.type(screen.getByLabelText('Headcount'), headcount)
+    await user.click(screen.getByRole('button', { name: 'Add to meeting' }))
+  }
+
+  it('hides the duration fields until a role exists', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    expect(screen.queryByLabelText('Hours')).not.toBeInTheDocument()
+
+    await addRole(user, 'Developer', '36400')
+    expect(screen.getByLabelText('Hours')).toBeInTheDocument()
+  })
+
+  it('calculates the total for a meeting of two roles (AC-6)', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await addRole(user, 'Developer', '36400')
+    await addRole(user, 'Manager', '72800')
+    await addToMeeting(user, 'Developer', '3')
+    await addToMeeting(user, 'Manager', '1')
+
+    await user.type(screen.getByLabelText('Hours'), '2')
+    await user.click(screen.getByRole('button', { name: 'Calculate' }))
+
+    expect(screen.getByText('Total cost: £200.00')).toBeInTheDocument()
+  })
+
+  it('uses a role salary edited after the calculation (AC-3)', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await addRole(user, 'Developer', '36400')
+    await addToMeeting(user, 'Developer', '2')
+    await user.type(screen.getByLabelText('Hours'), '1')
+    await user.type(screen.getByLabelText('Minutes'), '30')
+    await user.click(screen.getByRole('button', { name: 'Calculate' }))
+    expect(screen.getByText('Total cost: £60.00')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Edit Developer' }))
+    const form = screen.getByRole('form', { name: 'Edit Developer' })
+    await user.clear(within(form).getByLabelText('Annual salary'))
+    await user.type(within(form).getByLabelText('Annual salary'), '72800')
+    await user.click(within(form).getByRole('button', { name: 'Save' }))
+
+    expect(screen.getByText('Total cost: £120.00')).toBeInTheDocument()
+  })
+})
+
 describe('edit and delete roles (AC-3)', () => {
   beforeEach(() => {
     localStorage.clear()

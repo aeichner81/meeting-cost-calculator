@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { addMeetingLine } from './domain/meeting'
 import type { MeetingLine } from './domain/types'
+import { DurationCalculator } from './components/DurationCalculator'
 import { MeetingBuilder } from './components/MeetingBuilder'
 import { RoleForm } from './components/RoleForm'
 import { RolesPanel } from './components/RolesPanel'
@@ -51,6 +52,9 @@ export function App() {
       <section aria-labelledby="meeting-heading">
         <h2 id="meeting-heading">Meeting</h2>
         <MeetingBuilder roles={data.roles} lines={lines} onAddLine={addLine} />
+        {data.roles.length > 0 && (
+          <DurationCalculator roles={data.roles} lines={lines} currency={data.currency} />
+        )}
       </section>
     </main>
   )

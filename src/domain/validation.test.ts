@@ -1,4 +1,5 @@
 import {
+  validateDuration,
   validateHeadcount,
   validateMeetingInput,
   validateRoleName,
@@ -211,5 +212,37 @@ describe('validateMeetingInput', () => {
   it('returns no value when there are errors, so no cost can be calculated (AC-9)', () => {
     const result = validateMeetingInput({ ...valid, headcount: '0' })
     expect(result).not.toHaveProperty('value')
+  })
+})
+
+describe('validateDuration', () => {
+  it('returns the hours and minutes as numbers (AC-5)', () => {
+    expect(validateDuration({ hours: '1', minutes: '30' })).toEqual({
+      ok: true,
+      value: { hours: 1, minutes: 30 },
+    })
+  })
+
+  it('counts an empty hours or minutes field as 0 (AC-9)', () => {
+    expect(validateDuration({ hours: '', minutes: '45' })).toEqual({
+      ok: true,
+      value: { hours: 0, minutes: 45 },
+    })
+  })
+
+  it('reports invalid hours and minutes by field (AC-9)', () => {
+    const result = validateDuration({ hours: '-1', minutes: '60' })
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(Object.keys(result.errors).sort()).toEqual(['hours', 'minutes'])
+    }
+  })
+
+  it('reports a zero duration (AC-9)', () => {
+    const result = validateDuration({ hours: '', minutes: '' })
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(Object.keys(result.errors)).toEqual(['duration'])
+    }
   })
 })
