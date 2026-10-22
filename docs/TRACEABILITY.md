@@ -20,9 +20,9 @@ Acceptance criteria from `specs/001-meeting-cost-calculator.md`. "Task" is pre-f
 | AC-14 | US-5 | Default currency is pounds sterling (£) | 5, 13 | `src/domain/currency.test.ts` (domain only; UI in task 13) | `src/domain/currency.ts` |
 | AC-15 | US-5 | Changing currency changes the symbol only, not the numbers | 5, 13 | `src/domain/currency.test.ts` (domain only; UI in task 13) | `src/domain/currency.ts` |
 | AC-16 | US-5 | Displayed costs rounded to 2 dp; no intermediate rounding | 5, 13 | `src/domain/currency.test.ts` (domain only; UI in task 13) | `src/domain/currency.ts` |
-| AC-17 | US-6 | Roles, salaries and currency persist across reopen | 6, 13, 14 | | |
-| AC-18 | US-6 | No salary, role or meeting data sent to any server | 6, 14 | | |
-| AC-19 | US-6 | Storage unavailable: app works with empty list and says so | 6, 14 | | |
+| AC-17 | US-6 | Roles, salaries and currency persist across reopen | 6, 13, 14 | `src/storage/storage.test.ts`, `src/hooks/usePersistedState.test.ts` (storage layer only; currency wiring in task 13) | `src/storage/storage.ts`, `src/hooks/usePersistedState.ts` |
+| AC-18 | US-6 | No salary, role or meeting data sent to any server | 6, 14 | `src/storage/storage.test.ts` (no network calls from storage; privacy statement in task 14) | `src/storage/storage.ts` |
+| AC-19 | US-6 | Storage unavailable: app works with empty list and says so | 6, 14 | `src/storage/storage.test.ts`, `src/hooks/usePersistedState.test.ts` (fail-soft and `storageFailed` flag; visible notice in task 14) | `src/storage/storage.ts`, `src/hooks/usePersistedState.ts` |
 | AC-20 | US-7 | Phone-sized screen: all tasks without horizontal scrolling | 15, 16 | | |
 | AC-21 | US-2 | 2 × £20.00 for 1h 30m = £60.00 | 2, 10 | `src/domain/meeting.test.ts` (domain only; UI in task 10) | `src/domain/meeting.ts` |
 | AC-22 | US-2 | Adding an existing role merges into one line (3 + 2 = 5) | 9 | | |
