@@ -39,6 +39,6 @@ Acceptance criteria from `specs/001-meeting-cost-calculator.md`. "Task" is pre-f
 | A11Y-4 | Contrast 4.5:1 text, 3:1 large text, borders, focus | 16 | | |
 | A11Y-5 | Errors as text next to field, linked, not colour alone | 7, 10, 16 | | |
 | A11Y-6 | Results and errors announced (`aria-live="polite"`) | 10, 16 | | |
-| A11Y-7 | `lang`, one `h1`, `main`, real buttons, breakdown as `<table>` | 1, 11, 16 | | |
+| A11Y-7 | `lang`, one `h1`, `main`, real buttons, breakdown as `<table>` | 1, 11, 16 | `src/App.test.tsx` (skeleton: `lang`, one `h1`, `main`; table and buttons in later tasks) | `index.html`, `src/App.tsx` |
 | A11Y-8 | Usable at 200% zoom | 15, 16 | | |
 | A11Y-9 | Touch targets at least 24 × 24 CSS px | 15, 16 | | |
