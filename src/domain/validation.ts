@@ -4,6 +4,8 @@ export type RoleNameResult = { ok: true; value: string } | { ok: false; error: s
 
 export type SalaryResult = { ok: true; value: number } | { ok: false; error: string }
 
+export type HeadcountResult = { ok: true; value: number } | { ok: false; error: string }
+
 export type MeetingField = 'headcount' | 'hours' | 'minutes' | 'duration'
 
 export type MeetingErrors = Partial<Record<MeetingField, string>>
@@ -72,6 +74,15 @@ export function validateSalary(text: string): SalaryResult {
   return { ok: true, value: salary }
 }
 
+// Any whole number of at least 1, with no upper limit (AC-5, AC-9).
+export function validateHeadcount(text: string): HeadcountResult {
+  const headcount = parseWholeNumber(text)
+  if (headcount === null || headcount < 1) {
+    return { ok: false, error: HEADCOUNT_ERROR }
+  }
+  return { ok: true, value: headcount }
+}
+
 // An empty hours or minutes field counts as 0 (AC-9).
 function parseOptionalWholeNumber(text: string): number | null {
   return text.trim() === '' ? 0 : parseWholeNumber(text)
@@ -80,9 +91,9 @@ function parseOptionalWholeNumber(text: string): number | null {
 export function validateMeetingInput(input: MeetingInput): MeetingResult {
   const errors: MeetingErrors = {}
 
-  const headcount = parseWholeNumber(input.headcount)
-  if (headcount === null || headcount < 1) {
-    errors.headcount = HEADCOUNT_ERROR
+  const headcountResult = validateHeadcount(input.headcount)
+  if (!headcountResult.ok) {
+    errors.headcount = headcountResult.error
   }
 
   const hours = parseOptionalWholeNumber(input.hours)
@@ -100,8 +111,8 @@ export function validateMeetingInput(input: MeetingInput): MeetingResult {
     errors.duration = DURATION_ERROR
   }
 
-  if (Object.keys(errors).length > 0 || headcount === null || hours === null || minutes === null) {
+  if (!headcountResult.ok || hours === null || minutes === null || Object.keys(errors).length > 0) {
     return { ok: false, errors }
   }
-  return { ok: true, value: { headcount, duration: { hours, minutes } } }
+  return { ok: true, value: { headcount: headcountResult.value, duration: { hours, minutes } } }
 }

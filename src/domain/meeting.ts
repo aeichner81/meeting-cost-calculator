@@ -26,6 +26,20 @@ function costOfLine(role: Role, line: MeetingLine, hours: number): LineCost {
   }
 }
 
+// A role already in the meeting merges into its existing line (AC-22).
+export function addMeetingLine(
+  lines: MeetingLine[],
+  roleId: string,
+  headcount: number,
+): MeetingLine[] {
+  if (!lines.some((line) => line.roleId === roleId)) {
+    return [...lines, { roleId, headcount }]
+  }
+  return lines.map((line) =>
+    line.roleId === roleId ? { ...line, headcount: line.headcount + headcount } : line,
+  )
+}
+
 // Costs are left unrounded; rounding happens only when displaying (AC-16).
 export function meetingCost(
   lines: MeetingLine[],

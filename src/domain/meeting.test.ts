@@ -1,4 +1,4 @@
-import { durationInHours, meetingCost } from './meeting'
+import { addMeetingLine, durationInHours, meetingCost } from './meeting'
 import type { MeetingLine, Role } from './types'
 
 const roleA: Role = { id: 'a', name: 'Role A', annualSalary: 36400 }
@@ -12,6 +12,34 @@ describe('durationInHours', () => {
   it('handles hours only and minutes only', () => {
     expect(durationInHours({ hours: 2, minutes: 0 })).toBe(2)
     expect(durationInHours({ hours: 0, minutes: 15 })).toBe(0.25)
+  })
+})
+
+describe('addMeetingLine', () => {
+  it('adds a new line for a role not yet in the meeting (AC-5)', () => {
+    expect(addMeetingLine([], 'a', 3)).toEqual([{ roleId: 'a', headcount: 3 }])
+  })
+
+  it('merges a role already in the meeting into its existing line (AC-22)', () => {
+    const lines: MeetingLine[] = [{ roleId: 'a', headcount: 3 }]
+    expect(addMeetingLine(lines, 'a', 2)).toEqual([{ roleId: 'a', headcount: 5 }])
+  })
+
+  it('keeps other lines and their order when merging (AC-22)', () => {
+    const lines: MeetingLine[] = [
+      { roleId: 'a', headcount: 3 },
+      { roleId: 'b', headcount: 1 },
+    ]
+    expect(addMeetingLine(lines, 'a', 2)).toEqual([
+      { roleId: 'a', headcount: 5 },
+      { roleId: 'b', headcount: 1 },
+    ])
+  })
+
+  it('does not change the lines it was given', () => {
+    const lines: MeetingLine[] = [{ roleId: 'a', headcount: 3 }]
+    addMeetingLine(lines, 'a', 2)
+    expect(lines).toEqual([{ roleId: 'a', headcount: 3 }])
   })
 })
 

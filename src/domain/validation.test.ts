@@ -1,4 +1,26 @@
-import { validateMeetingInput, validateRoleName, validateSalary } from './validation'
+import {
+  validateHeadcount,
+  validateMeetingInput,
+  validateRoleName,
+  validateSalary,
+} from './validation'
+
+describe('validateHeadcount', () => {
+  it.each([
+    ['1', 1],
+    [' 12 ', 12],
+    ['1000000', 1000000],
+  ])('accepts the whole number %j (AC-5)', (input, value) => {
+    expect(validateHeadcount(input)).toEqual({ ok: true, value })
+  })
+
+  it.each(['', '0', '-1', '1.5', 'abc', '1e3'])('rejects %j with an error (AC-9)', (input) => {
+    expect(validateHeadcount(input)).toEqual({
+      ok: false,
+      error: 'Enter a whole number of attendees, 1 or more.',
+    })
+  })
+})
 
 describe('validateRoleName', () => {
   it('accepts a non-blank name and returns it trimmed (AC-4)', () => {

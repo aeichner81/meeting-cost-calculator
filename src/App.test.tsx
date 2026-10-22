@@ -53,6 +53,83 @@ describe('roles (AC-1, AC-4)', () => {
   })
 })
 
+describe('meeting builder (AC-5, AC-8, AC-22)', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  async function addRole(user: ReturnType<typeof userEvent.setup>, name: string, salary: string) {
+    await user.type(screen.getByLabelText('Role name'), name)
+    await user.type(screen.getByLabelText('Annual salary'), salary)
+    await user.click(screen.getByRole('button', { name: 'Add role' }))
+  }
+
+  async function addToMeeting(
+    user: ReturnType<typeof userEvent.setup>,
+    role: string,
+    headcount: string,
+  ) {
+    await user.selectOptions(screen.getByLabelText('Role'), role)
+    await user.clear(screen.getByLabelText('Headcount'))
+    await user.type(screen.getByLabelText('Headcount'), headcount)
+    await user.click(screen.getByRole('button', { name: 'Add to meeting' }))
+  }
+
+  it('asks for a role first when none exist, then offers the builder once one is added', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    expect(screen.getByText(/add a role first/i)).toBeInTheDocument()
+
+    await addRole(user, 'Developer', '36400')
+
+    expect(screen.queryByText(/add a role first/i)).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Headcount')).toBeInTheDocument()
+  })
+
+  it('merges a repeated role into a single line (AC-22)', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await addRole(user, 'Developer', '36400')
+
+    await addToMeeting(user, 'Developer', '3')
+    await addToMeeting(user, 'Developer', '2')
+
+    const list = screen.getByRole('list', { name: 'Meeting lines' })
+    const items = within(list).getAllByRole('listitem')
+    expect(items).toHaveLength(1)
+    expect(items[0]).toHaveTextContent('Developer')
+    expect(items[0]).toHaveTextContent('5')
+  })
+
+  it('drops meeting lines for a role that is deleted', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await addRole(user, 'Developer', '36400')
+    await addToMeeting(user, 'Developer', '3')
+
+    await user.click(screen.getByRole('button', { name: 'Delete Developer' }))
+
+    expect(screen.queryByRole('list', { name: 'Meeting lines' })).not.toBeInTheDocument()
+    expect(screen.getByText(/add a role first/i)).toBeInTheDocument()
+  })
+
+  it('shows a renamed role in the meeting line', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await addRole(user, 'Developer', '36400')
+    await addToMeeting(user, 'Developer', '3')
+
+    await user.click(screen.getByRole('button', { name: 'Edit Developer' }))
+    const form = screen.getByRole('form', { name: 'Edit Developer' })
+    await user.clear(within(form).getByLabelText('Role name'))
+    await user.type(within(form).getByLabelText('Role name'), 'Engineer')
+    await user.click(within(form).getByRole('button', { name: 'Save' }))
+
+    const list = screen.getByRole('list', { name: 'Meeting lines' })
+    expect(within(list).getByText('Engineer')).toBeInTheDocument()
+  })
+})
+
 describe('edit and delete roles (AC-3)', () => {
   beforeEach(() => {
     localStorage.clear()
@@ -98,7 +175,7 @@ describe('edit and delete roles (AC-3)', () => {
     unmount()
     render(<App />)
     expect(screen.queryByText('Developer')).not.toBeInTheDocument()
-    expect(screen.getByText('Manager')).toBeInTheDocument()
+    expect(within(screen.getByRole('list')).getByText('Manager')).toBeInTheDocument()
   })
 
   it('shows the empty state after the last role is deleted', async () => {

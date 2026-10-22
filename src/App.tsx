@@ -1,3 +1,7 @@
+import { useState } from 'react'
+import { addMeetingLine } from './domain/meeting'
+import type { MeetingLine } from './domain/types'
+import { MeetingBuilder } from './components/MeetingBuilder'
 import { RoleForm } from './components/RoleForm'
 import { RolesPanel } from './components/RolesPanel'
 import { usePersistedState } from './hooks/usePersistedState'
@@ -5,6 +9,8 @@ import styles from './App.module.css'
 
 export function App() {
   const { data, setData } = usePersistedState()
+  // Meetings are not saved in v1, so this stays in memory only (AC-24).
+  const [lines, setLines] = useState<MeetingLine[]>([])
 
   function addRole(name: string, annualSalary: number) {
     const role = { id: crypto.randomUUID(), name, annualSalary }
@@ -20,13 +26,20 @@ export function App() {
 
   function deleteRole(id: string) {
     setData((previous) => ({ ...previous, roles: previous.roles.filter((role) => role.id !== id) }))
+    setLines((previous) => previous.filter((line) => line.roleId !== id))
+  }
+
+  function addLine(roleId: string, headcount: number) {
+    setLines((previous) => addMeetingLine(previous, roleId, headcount))
   }
 
   return (
     <main className={styles.main}>
       <h1>Meeting Cost Calculator</h1>
       <section aria-labelledby="roles-heading">
-        <h2 id="roles-heading">Roles</h2>
+        <h2 id="roles-heading" tabIndex={-1}>
+          Roles
+        </h2>
         <RoleForm onAdd={addRole} />
         <RolesPanel
           roles={data.roles}
@@ -34,6 +47,10 @@ export function App() {
           onEdit={editRole}
           onDelete={deleteRole}
         />
+      </section>
+      <section aria-labelledby="meeting-heading">
+        <h2 id="meeting-heading">Meeting</h2>
+        <MeetingBuilder roles={data.roles} lines={lines} onAddLine={addLine} />
       </section>
     </main>
   )
