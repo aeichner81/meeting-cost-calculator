@@ -7,7 +7,7 @@ Acceptance criteria from `specs/001-meeting-cost-calculator.md`. "Task" is pre-f
 | AC-1 | US-1 | Add a role with name and annual salary; it appears in the list | 7 | | |
 | AC-2 | US-1 | Hourly rate = salary ÷ 1,820 (£36,400 → £20.00) | 2 | `src/domain/rates.test.ts` (domain only; UI in later tasks) | `src/domain/rates.ts` |
 | AC-3 | US-1 | Edit or delete a role; later calculations use new values | 8 | | |
-| AC-4 | US-1 | Invalid salary shows an error and is not saved | 4, 7 | `src/domain/validation.test.ts` (domain only; form in task 7) | `src/domain/validation.ts` |
+| AC-4 | US-1 | Blank name or invalid salary shows an error and is not saved | 4, 7 | `src/domain/validation.test.ts` (domain only; form in task 7) | `src/domain/validation.ts` |
 | AC-5 | US-2 | Add meeting line (role, headcount) and duration; total cost shown | 9, 10 | | |
 | AC-6 | US-2 | 3×£20 + 1×£40 for 2h = £200.00 | 2, 11 | `src/domain/meeting.test.ts` (domain only; UI in task 11) | `src/domain/meeting.ts` |
 | AC-7 | US-3 | Breakdown by role (£120.00 + £80.00) adds up to total | 2, 11 | `src/domain/meeting.test.ts` (domain only; table in task 11) | `src/domain/meeting.ts` |

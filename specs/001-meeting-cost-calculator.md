@@ -24,7 +24,7 @@ Managers rarely see what their meetings cost. Without that, it is hard to judge 
 - AC-1 (US-1): Given I have no roles, when I add a role with a name and an annual salary, then the role appears in my role list.
 - AC-2 (US-1): Given a role with an annual salary of £36,400, when the hourly rate is calculated, then it is £20.00 (salary ÷ 1,820, where 1,820 = 52 weeks × 35 hours).
 - AC-3 (US-1): Given an existing role, when I edit its name or salary or delete it, then the role list reflects the change and later calculations use the new values.
-- AC-4 (US-1): Given I enter a salary that is empty, zero, negative or not a number, when I try to save the role, then the app shows a clear error and does not save it. Any positive salary is accepted; there is no upper limit.
+- AC-4 (US-1): Given I enter a role name that is empty or contains only spaces, or a salary that is empty, zero, negative or not a number, when I try to save the role, then the app shows a clear error next to the invalid field and does not save it. Any non-blank name is accepted. Any positive salary is accepted; there is no upper limit.
 
 **Meeting cost (US-2, US-3)**
 - AC-5 (US-2): Given roles exist, when I add a meeting line with a role and a headcount (any whole number of at least 1, with no upper limit) and enter a duration in hours and minutes, then the app shows the total cost of the meeting.

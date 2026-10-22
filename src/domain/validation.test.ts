@@ -1,4 +1,23 @@
-import { validateMeetingInput, validateSalary } from './validation'
+import { validateMeetingInput, validateRoleName, validateSalary } from './validation'
+
+describe('validateRoleName', () => {
+  it('accepts a non-blank name and returns it trimmed (AC-4)', () => {
+    expect(validateRoleName('Engineer')).toEqual({ ok: true, value: 'Engineer' })
+    expect(validateRoleName('  Senior Engineer  ')).toEqual({ ok: true, value: 'Senior Engineer' })
+  })
+
+  it('accepts any non-blank name, such as digits or symbols (AC-4)', () => {
+    expect(validateRoleName('L5 / Staff')).toEqual({ ok: true, value: 'L5 / Staff' })
+  })
+
+  it.each([
+    ['empty', ''],
+    ['spaces only', '   '],
+    ['tabs and newlines only', '\t\n '],
+  ])('rejects a name that is %s with an error (AC-4)', (_label, input) => {
+    expect(validateRoleName(input)).toEqual({ ok: false, error: 'Enter a role name.' })
+  })
+})
 
 describe('validateSalary', () => {
   it('accepts a positive salary and returns it as a number (AC-4)', () => {

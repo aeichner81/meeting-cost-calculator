@@ -1,5 +1,7 @@
 import type { Duration } from './types'
 
+export type RoleNameResult = { ok: true; value: string } | { ok: false; error: string }
+
 export type SalaryResult = { ok: true; value: number } | { ok: false; error: string }
 
 export type MeetingField = 'headcount' | 'hours' | 'minutes' | 'duration'
@@ -23,6 +25,7 @@ export type MeetingResult =
 
 const MAX_MINUTES = 59
 
+const ROLE_NAME_ERROR = 'Enter a role name.'
 const SALARY_ERROR = 'Enter an annual salary greater than 0.'
 const HEADCOUNT_ERROR = 'Enter a whole number of attendees, 1 or more.'
 const HOURS_ERROR = 'Enter hours as a whole number, 0 or more.'
@@ -49,6 +52,15 @@ function parseWholeNumber(text: string): number | null {
   }
   const value = Number(trimmed)
   return Number.isSafeInteger(value) ? value : null
+}
+
+// Any name with at least one non-space character is accepted (AC-4).
+export function validateRoleName(text: string): RoleNameResult {
+  const name = text.trim()
+  if (name === '') {
+    return { ok: false, error: ROLE_NAME_ERROR }
+  }
+  return { ok: true, value: name }
 }
 
 // Any positive salary is accepted, with no upper limit (AC-4).
