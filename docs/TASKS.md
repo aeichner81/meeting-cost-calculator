@@ -13,7 +13,7 @@ Build in order, one task at a time. Each task: tests first for its criteria, the
 - [x] **9. Meeting builder.** Add a line (role + headcount), merge duplicate roles, "add a role first" empty state. Covers: AC-5, AC-8, AC-22.
 - [x] **10. Duration and Calculate.** Hours and minutes fields, Calculate button, total, errors, live region. Covers: AC-5, AC-9, AC-21.
 - [x] **11. Cost breakdown table.** Per-role costs that add up to the total. Covers: AC-6, AC-7.
-- [ ] **12. Recurrence UI.** Recurrence select with monthly and yearly display. Covers: AC-10, AC-11, AC-12, AC-13.
+- [x] **12. Recurrence UI.** Recurrence select with monthly and yearly display. Covers: AC-10, AC-11, AC-12, AC-13.
 - [ ] **13. Currency selector.** Wired to display and persistence. Covers: AC-14, AC-15, AC-16, AC-17, AC-23.
 - [ ] **14. Persistence behaviours.** Meeting cleared on reload, storage-unavailable notice, privacy statement. Covers: AC-17, AC-18, AC-19, AC-24.
 - [ ] **15. Responsive layout.** Phone-sized layout without horizontal scroll; touch targets. Covers: AC-20, A11Y-8, A11Y-9.

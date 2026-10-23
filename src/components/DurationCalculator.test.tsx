@@ -171,4 +171,60 @@ describe('DurationCalculator', () => {
     )
     expect(screen.getByText('Total cost: £40.00')).toBeInTheDocument()
   })
+
+  describe('recurrence (AC-10 to AC-13)', () => {
+    async function calculateWith(recurrence: string) {
+      const user = userEvent.setup()
+      render(<DurationCalculator roles={roles} lines={lines} currency="GBP" />)
+      await user.selectOptions(screen.getByLabelText('Recurrence'), recurrence)
+      await calculate(user, '2', '0')
+      return user
+    }
+
+    // AC-10
+    it('shows monthly and yearly cost for a weekly meeting', async () => {
+      await calculateWith('weekly')
+      expect(screen.getByText('Monthly cost: £866.67')).toBeInTheDocument()
+      expect(screen.getByText('Yearly cost: £10,400.00')).toBeInTheDocument()
+    })
+
+    // AC-11, AC-12
+    it.each([
+      ['daily', '£4,333.33', '£52,000.00'],
+      ['fortnightly', '£433.33', '£5,200.00'],
+      ['monthly', '£200.00', '£2,400.00'],
+    ])('shows the %s monthly and yearly cost', async (recurrence, monthly, yearly) => {
+      await calculateWith(recurrence)
+      expect(screen.getByText(`Monthly cost: ${monthly}`)).toBeInTheDocument()
+      expect(screen.getByText(`Yearly cost: ${yearly}`)).toBeInTheDocument()
+    })
+
+    // AC-13
+    it('shows only the per-occurrence cost when the meeting happens once', async () => {
+      await calculateWith('once')
+      expect(screen.getByText('Total cost: £200.00')).toBeInTheDocument()
+      expect(screen.queryByText(/monthly cost/i)).not.toBeInTheDocument()
+      expect(screen.queryByText(/yearly cost/i)).not.toBeInTheDocument()
+    })
+
+    it('updates the figures when the recurrence changes after calculating', async () => {
+      const user = await calculateWith('weekly')
+      await user.selectOptions(screen.getByLabelText('Recurrence'), 'once')
+      expect(screen.queryByText(/yearly cost/i)).not.toBeInTheDocument()
+      await user.selectOptions(screen.getByLabelText('Recurrence'), 'monthly')
+      expect(screen.getByText('Yearly cost: £2,400.00')).toBeInTheDocument()
+    })
+
+    it('shows no recurring figures when the duration is invalid', async () => {
+      const user = await calculateWith('weekly')
+      await calculate(user, '-1', '0')
+      expect(screen.queryByText(/yearly cost/i)).not.toBeInTheDocument()
+    })
+
+    // A11Y-6
+    it('announces the recurring figures in the live region', async () => {
+      await calculateWith('weekly')
+      expect(screen.getByRole('status')).toHaveTextContent('Yearly cost: £10,400.00')
+    })
+  })
 })

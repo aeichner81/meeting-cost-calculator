@@ -3,10 +3,13 @@ import type { FormEvent } from 'react'
 import { formatMoney } from '../domain/currency'
 import type { CurrencyCode } from '../domain/currency'
 import { meetingCost } from '../domain/meeting'
+import { recurringCost } from '../domain/recurrence'
+import type { Recurrence } from '../domain/recurrence'
 import type { Duration, MeetingLine, Role } from '../domain/types'
 import { validateDuration } from '../domain/validation'
 import type { MeetingErrors } from '../domain/validation'
 import { CostBreakdown } from './CostBreakdown'
+import { RecurrenceSelect } from './RecurrenceSelect'
 import styles from './MeetingBuilder.module.css'
 
 interface DurationCalculatorProps {
@@ -36,6 +39,7 @@ export function DurationCalculator({ roles, lines, currency }: DurationCalculato
   const [errors, setErrors] = useState<MeetingErrors>({})
   // The duration that was last calculated; the total is derived from it so it follows later changes.
   const [duration, setDuration] = useState<Duration | undefined>()
+  const [recurrence, setRecurrence] = useState<Recurrence>('once')
 
   const hasErrors = Object.keys(errors).length > 0
 
@@ -54,14 +58,22 @@ export function DurationCalculator({ roles, lines, currency }: DurationCalculato
   // Only present when a valid duration was calculated and the meeting has attendees.
   const cost = duration && lines.length > 0 ? meetingCost(lines, roles, duration) : undefined
 
-  function statusMessage(): string {
+  // Monthly and yearly figures exist only for recurring meetings (AC-13).
+  const recurring = cost ? recurringCost(cost.total, recurrence) : null
+
+  function statusMessages(): string[] {
     if (hasErrors) {
-      return INVALID_MESSAGE
+      return [INVALID_MESSAGE]
     }
     if (cost) {
-      return `Total cost: ${formatMoney(cost.total, currency)}`
+      const messages = [`Total cost: ${formatMoney(cost.total, currency)}`]
+      if (recurring) {
+        messages.push(`Monthly cost: ${formatMoney(recurring.monthly, currency)}`)
+        messages.push(`Yearly cost: ${formatMoney(recurring.yearly, currency)}`)
+      }
+      return messages
     }
-    return duration ? NO_LINES_MESSAGE : ''
+    return duration ? [NO_LINES_MESSAGE] : []
   }
 
   return (
@@ -106,11 +118,14 @@ export function DurationCalculator({ roles, lines, currency }: DurationCalculato
             </p>
           )}
         </div>
+        <RecurrenceSelect value={recurrence} onChange={setRecurrence} />
         <button type="submit">Calculate</button>
       </form>
-      <p role="status" aria-live="polite">
-        {statusMessage()}
-      </p>
+      <div role="status" aria-live="polite">
+        {statusMessages().map((message) => (
+          <p key={message}>{message}</p>
+        ))}
+      </div>
       {!hasErrors && cost && <CostBreakdown cost={cost} currency={currency} />}
     </>
   )
