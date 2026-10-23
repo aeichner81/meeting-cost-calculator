@@ -1,6 +1,10 @@
+.wrapper {
+  overflow-x: auto;
+}
+
 .table {
   border-collapse: collapse;
-  max-width: 100%;
+  width: 100%;
 }
 
 .table caption {

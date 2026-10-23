@@ -9,6 +9,7 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: './src/test/setup.ts',
-    css: false,
+    // Only raw CSS is kept, so layout tests can read the stylesheet source.
+    css: { include: /\.css\?raw$/ },
   },
 })

@@ -1,5 +1,35 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   font-family: system-ui, sans-serif;
   line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+/* A11Y-9: controls are at least 24 x 24 CSS pixels; 2.5rem is comfortable for touch. */
+button,
+input,
+select {
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  max-width: 100%;
+  font: inherit;
+}
+
+button {
+  padding: 0.25rem 0.75rem;
+}
+
+/* AC-20: on a phone, controls fill the row so forms stack without sideways scrolling. */
+@media (max-width: 40rem) {
+  input,
+  select,
+  button {
+    width: 100%;
+  }
 }

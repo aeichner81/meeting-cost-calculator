@@ -23,7 +23,7 @@ Acceptance criteria from `specs/001-meeting-cost-calculator.md`. "Task" is pre-f
 | AC-17 | US-6 | Roles, salaries and currency persist across reopen | 6, 13, 14 | `src/storage/storage.test.ts`, `src/hooks/usePersistedState.test.ts`, `src/App.test.tsx` (reload keeps roles, salaries, currency) | `src/storage/storage.ts`, `src/hooks/usePersistedState.ts`, `src/App.tsx` |
 | AC-18 | US-6 | No salary, role or meeting data sent to any server | 6, 14 | `src/storage/storage.test.ts` (no network calls from storage), `src/App.test.tsx` (privacy statement) | `src/storage/storage.ts`, `src/App.tsx` |
 | AC-19 | US-6 | Storage unavailable: app works with empty list and says so | 6, 14 | `src/storage/storage.test.ts`, `src/hooks/usePersistedState.test.ts` (fail-soft and `storageFailed` flag), `src/App.test.tsx` (visible notice on load and save failure) | `src/storage/storage.ts`, `src/hooks/usePersistedState.ts`, `src/App.tsx` |
-| AC-20 | US-7 | Phone-sized screen: all tasks without horizontal scrolling | 15, 16 | | |
+| AC-20 | US-7 | Phone-sized screen: all tasks without horizontal scrolling | 15, 16 | `src/layout.test.ts` (stylesheet rules; real-device check in task 16) | `src/index.css`, `src/components/*.module.css`, `src/components/CostBreakdown.tsx` |
 | AC-21 | US-2 | 2 × £20.00 for 1h 30m = £60.00 | 2, 10 | `src/domain/meeting.test.ts`, `src/components/DurationCalculator.test.tsx`, `src/App.test.tsx` | `src/domain/meeting.ts`, `src/components/DurationCalculator.tsx` |
 | AC-22 | US-2 | Adding an existing role merges into one line (3 + 2 = 5) | 9 | `src/domain/meeting.test.ts`, `src/App.test.tsx` | `src/domain/meeting.ts`, `src/App.tsx` |
 | AC-23 | US-5 | Currency selector offers exactly GBP, USD, CAD, EUR | 5, 13 | `src/domain/currency.test.ts`, `src/components/CurrencySelect.test.tsx` | `src/domain/currency.ts`, `src/components/CurrencySelect.tsx` |
@@ -40,5 +40,5 @@ Acceptance criteria from `specs/001-meeting-cost-calculator.md`. "Task" is pre-f
 | A11Y-5 | Errors as text next to field, linked, not colour alone | 7, 10, 16 | `src/components/RoleForm.test.tsx`, `src/components/DurationCalculator.test.tsx` (role and duration forms) | `src/components/RoleForm.tsx`, `src/components/DurationCalculator.tsx` |
 | A11Y-6 | Results and errors announced (`aria-live="polite"`) | 10, 16 | `src/components/DurationCalculator.test.tsx` (total and error status; screen reader check in task 16) | `src/components/DurationCalculator.tsx` |
 | A11Y-7 | `lang`, one `h1`, `main`, real buttons, breakdown as `<table>` | 1, 11, 16 | `src/App.test.tsx` (skeleton: `lang`, one `h1`, `main`), `src/components/CostBreakdown.test.tsx` (breakdown table with header cells; buttons audited in task 16) | `index.html`, `src/App.tsx`, `src/components/CostBreakdown.tsx` |
-| A11Y-8 | Usable at 200% zoom | 15, 16 | | |
-| A11Y-9 | Touch targets at least 24 × 24 CSS px | 15, 16 | | |
+| A11Y-8 | Usable at 200% zoom | 15, 16 | `src/layout.test.ts` (viewport allows zoom, text wraps; browser zoom check in task 16) | `index.html`, `src/index.css` |
+| A11Y-9 | Touch targets at least 24 × 24 CSS px | 15, 16 | `src/layout.test.ts` (button, input, select minimum size) | `src/index.css` |
