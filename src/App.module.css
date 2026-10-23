@@ -3,3 +3,14 @@
   margin: 0 auto;
   padding: 1rem;
 }
+
+.privacy {
+  margin: 0 0 1rem;
+}
+
+.notice {
+  margin: 0 0 1rem;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid currentColor;
+  border-radius: 0.25rem;
+}

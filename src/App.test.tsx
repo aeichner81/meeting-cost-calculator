@@ -300,3 +300,83 @@ describe('edit and delete roles (AC-3)', () => {
     expect(screen.getByText('No roles yet.')).toBeInTheDocument()
   })
 })
+
+describe('persistence behaviours (AC-17, AC-18, AC-19, AC-24)', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  async function addRole(user: ReturnType<typeof userEvent.setup>, name: string, salary: string) {
+    await user.type(screen.getByLabelText('Role name'), name)
+    await user.type(screen.getByLabelText('Annual salary'), salary)
+    await user.click(screen.getByRole('button', { name: 'Add role' }))
+  }
+
+  it('keeps roles and salaries but clears the meeting after a reload (AC-17, AC-24)', async () => {
+    const user = userEvent.setup()
+    const { unmount } = render(<App />)
+    await addRole(user, 'Developer', '36400')
+    await user.selectOptions(screen.getByLabelText('Role'), 'Developer')
+    await user.click(screen.getByRole('button', { name: 'Add to meeting' }))
+    await user.type(screen.getByLabelText('Hours'), '2')
+    await user.selectOptions(screen.getByLabelText('Recurrence'), 'weekly')
+    await user.click(screen.getByRole('button', { name: 'Calculate' }))
+    expect(screen.getByRole('list', { name: 'Meeting lines' })).toBeInTheDocument()
+
+    unmount()
+    render(<App />)
+
+    expect(screen.getByText('£36,400.00')).toBeInTheDocument()
+    expect(screen.queryByRole('list', { name: 'Meeting lines' })).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Hours')).toHaveValue('')
+    expect(screen.getByLabelText('Recurrence')).toHaveValue('once')
+    expect(screen.queryByText(/Total cost/)).not.toBeInTheDocument()
+  })
+
+  it('says where data is stored and that nothing is sent anywhere (AC-18)', () => {
+    render(<App />)
+    expect(screen.getByText(/stored only in this browser/i)).toBeInTheDocument()
+    expect(screen.getByText(/never sent to a server/i)).toBeInTheDocument()
+  })
+
+  it('shows no storage notice when storage works (AC-19)', () => {
+    render(<App />)
+    expect(screen.queryByText(/could not be loaded or saved/i)).not.toBeInTheDocument()
+  })
+
+  it('still works and tells the user when storage cannot be read (AC-19)', async () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new DOMException('denied', 'SecurityError')
+    })
+    const user = userEvent.setup()
+    render(<App />)
+
+    expect(screen.getByRole('status', { name: 'Storage notice' })).toHaveTextContent(
+      /could not be loaded or saved/i,
+    )
+    expect(screen.getByText('No roles yet.')).toBeInTheDocument()
+
+    await addRole(user, 'Developer', '36400')
+    expect(within(screen.getByRole('list')).getByText('Developer')).toBeInTheDocument()
+  })
+
+  it('tells the user when a save fails (AC-19)', async () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('full', 'QuotaExceededError')
+    })
+    const user = userEvent.setup()
+    render(<App />)
+    expect(screen.queryByText(/could not be loaded or saved/i)).not.toBeInTheDocument()
+
+    await addRole(user, 'Developer', '36400')
+
+    expect(screen.getByRole('status', { name: 'Storage notice' })).toHaveTextContent(
+      /could not be loaded or saved/i,
+    )
+    expect(within(screen.getByRole('list')).getByText('Developer')).toBeInTheDocument()
+  })
+})

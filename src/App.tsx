@@ -11,7 +11,7 @@ import { usePersistedState } from './hooks/usePersistedState'
 import styles from './App.module.css'
 
 export function App() {
-  const { data, setData } = usePersistedState()
+  const { data, setData, storageFailed } = usePersistedState()
   // Meetings are not saved in v1, so this stays in memory only (AC-24).
   const [lines, setLines] = useState<MeetingLine[]>([])
 
@@ -43,6 +43,18 @@ export function App() {
   return (
     <main className={styles.main}>
       <h1>Meeting Cost Calculator</h1>
+      <p className={styles.privacy}>
+        Roles, salaries and your currency are stored only in this browser and are never sent to a
+        server. Meetings are not saved.
+      </p>
+      <div role="status" aria-label="Storage notice">
+        {storageFailed && (
+          <p className={styles.notice}>
+            Your data could not be loaded or saved in this browser. The calculator still works, but
+            roles will not be kept after you close it.
+          </p>
+        )}
+      </div>
       <CurrencySelect value={data.currency} onChange={changeCurrency} />
       <section aria-labelledby="roles-heading">
         <h2 id="roles-heading" tabIndex={-1}>

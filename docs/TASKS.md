@@ -15,7 +15,7 @@ Build in order, one task at a time. Each task: tests first for its criteria, the
 - [x] **11. Cost breakdown table.** Per-role costs that add up to the total. Covers: AC-6, AC-7.
 - [x] **12. Recurrence UI.** Recurrence select with monthly and yearly display. Covers: AC-10, AC-11, AC-12, AC-13.
 - [x] **13. Currency selector.** Wired to display and persistence. Covers: AC-14, AC-15, AC-16, AC-17, AC-23.
-- [ ] **14. Persistence behaviours.** Meeting cleared on reload, storage-unavailable notice, privacy statement. Covers: AC-17, AC-18, AC-19, AC-24.
+- [x] **14. Persistence behaviours.** Meeting cleared on reload, storage-unavailable notice, privacy statement. Covers: AC-17, AC-18, AC-19, AC-24.
 - [ ] **15. Responsive layout.** Phone-sized layout without horizontal scroll; touch targets. Covers: AC-20, A11Y-8, A11Y-9.
 - [ ] **16. Accessibility pass.** Axe check, keyboard walkthrough, contrast, focus, screen reader smoke test notes. Covers: A11Y-1 to A11Y-9.
 - [ ] **17. Wrap-up.** Finish `TRACEABILITY.md`, write the README (the method story), confirm the live Pages site. Covers: documentation.
