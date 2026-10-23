@@ -1,0 +1,27 @@
+.table {
+  border-collapse: collapse;
+  max-width: 100%;
+}
+
+.table caption {
+  text-align: left;
+  font-weight: bold;
+  padding-bottom: 0.25rem;
+}
+
+.table th,
+.table td {
+  padding: 0.25rem 0.75rem;
+  border-bottom: 1px solid #767676;
+  text-align: left;
+}
+
+.table td:last-child,
+.table th:last-child {
+  text-align: right;
+}
+
+.table tfoot th,
+.table tfoot td {
+  font-weight: bold;
+}

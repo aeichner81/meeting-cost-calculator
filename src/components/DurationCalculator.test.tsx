@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { DurationCalculator } from './DurationCalculator'
 import type { MeetingLine, Role } from '../domain/types'
@@ -47,6 +47,28 @@ describe('DurationCalculator', () => {
     render(<DurationCalculator roles={roles} lines={lines} currency="GBP" />)
     await calculate(user, '2', '0')
     expect(screen.getByText('Total cost: £200.00')).toBeInTheDocument()
+  })
+
+  // AC-6, AC-7
+  it('shows the breakdown by role after calculating, and not before', async () => {
+    const user = userEvent.setup()
+    render(<DurationCalculator roles={roles} lines={lines} currency="GBP" />)
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+
+    await calculate(user, '2', '0')
+
+    const table = screen.getByRole('table', { name: 'Cost by role' })
+    expect(within(table).getByText('£120.00')).toBeInTheDocument()
+    expect(within(table).getByText('£80.00')).toBeInTheDocument()
+    expect(within(table).getByText('£200.00')).toBeInTheDocument()
+  })
+
+  it('removes the breakdown when the next calculation is invalid', async () => {
+    const user = userEvent.setup()
+    render(<DurationCalculator roles={roles} lines={lines} currency="GBP" />)
+    await calculate(user, '2', '0')
+    await calculate(user, '-1', '0')
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
   })
 
   // AC-21

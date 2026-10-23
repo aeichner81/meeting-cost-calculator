@@ -6,6 +6,7 @@ import { meetingCost } from '../domain/meeting'
 import type { Duration, MeetingLine, Role } from '../domain/types'
 import { validateDuration } from '../domain/validation'
 import type { MeetingErrors } from '../domain/validation'
+import { CostBreakdown } from './CostBreakdown'
 import styles from './MeetingBuilder.module.css'
 
 interface DurationCalculatorProps {
@@ -50,17 +51,17 @@ export function DurationCalculator({ roles, lines, currency }: DurationCalculato
     setDuration(result.value)
   }
 
+  // Only present when a valid duration was calculated and the meeting has attendees.
+  const cost = duration && lines.length > 0 ? meetingCost(lines, roles, duration) : undefined
+
   function statusMessage(): string {
     if (hasErrors) {
       return INVALID_MESSAGE
     }
-    if (duration && lines.length === 0) {
-      return NO_LINES_MESSAGE
+    if (cost) {
+      return `Total cost: ${formatMoney(cost.total, currency)}`
     }
-    if (duration) {
-      return `Total cost: ${formatMoney(meetingCost(lines, roles, duration).total, currency)}`
-    }
-    return ''
+    return duration ? NO_LINES_MESSAGE : ''
   }
 
   return (
@@ -110,6 +111,7 @@ export function DurationCalculator({ roles, lines, currency }: DurationCalculato
       <p role="status" aria-live="polite">
         {statusMessage()}
       </p>
+      {!hasErrors && cost && <CostBreakdown cost={cost} currency={currency} />}
     </>
   )
 }
