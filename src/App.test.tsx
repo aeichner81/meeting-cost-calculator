@@ -195,6 +195,55 @@ describe('duration and calculate (AC-5, AC-6, AC-21)', () => {
   })
 })
 
+describe('currency selector (AC-14, AC-15, AC-16, AC-17)', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  async function addRole(user: ReturnType<typeof userEvent.setup>, name: string, salary: string) {
+    await user.type(screen.getByLabelText('Role name'), name)
+    await user.type(screen.getByLabelText('Annual salary'), salary)
+    await user.click(screen.getByRole('button', { name: 'Add role' }))
+  }
+
+  it('defaults to pounds sterling (AC-14)', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    expect(screen.getByLabelText('Currency')).toHaveValue('GBP')
+
+    await addRole(user, 'Developer', '36400')
+    expect(screen.getByText('£36,400.00')).toBeInTheDocument()
+  })
+
+  it('changes the symbol but not the numbers (AC-15, AC-16)', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await addRole(user, 'Developer', '36400')
+    await user.selectOptions(screen.getByLabelText('Role'), 'Developer')
+    await user.click(screen.getByRole('button', { name: 'Add to meeting' }))
+    await user.type(screen.getByLabelText('Hours'), '1')
+    await user.click(screen.getByRole('button', { name: 'Calculate' }))
+    expect(screen.getByText('Total cost: £20.00')).toBeInTheDocument()
+
+    await user.selectOptions(screen.getByLabelText('Currency'), 'EUR')
+
+    expect(screen.queryByText('£36,400.00')).not.toBeInTheDocument()
+    expect(screen.getByText('€36,400.00')).toBeInTheDocument()
+    expect(screen.getByText('Total cost: €20.00')).toBeInTheDocument()
+  })
+
+  it('keeps the chosen currency after a reload (AC-17)', async () => {
+    const user = userEvent.setup()
+    const { unmount } = render(<App />)
+    await user.selectOptions(screen.getByLabelText('Currency'), 'USD')
+
+    unmount()
+    render(<App />)
+
+    expect(screen.getByLabelText('Currency')).toHaveValue('USD')
+  })
+})
+
 describe('edit and delete roles (AC-3)', () => {
   beforeEach(() => {
     localStorage.clear()

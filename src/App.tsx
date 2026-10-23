@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { addMeetingLine } from './domain/meeting'
+import type { CurrencyCode } from './domain/currency'
 import type { MeetingLine } from './domain/types'
+import { CurrencySelect } from './components/CurrencySelect'
 import { DurationCalculator } from './components/DurationCalculator'
 import { MeetingBuilder } from './components/MeetingBuilder'
 import { RoleForm } from './components/RoleForm'
@@ -30,6 +32,10 @@ export function App() {
     setLines((previous) => previous.filter((line) => line.roleId !== id))
   }
 
+  function changeCurrency(currency: CurrencyCode) {
+    setData((previous) => ({ ...previous, currency }))
+  }
+
   function addLine(roleId: string, headcount: number) {
     setLines((previous) => addMeetingLine(previous, roleId, headcount))
   }
@@ -37,6 +43,7 @@ export function App() {
   return (
     <main className={styles.main}>
       <h1>Meeting Cost Calculator</h1>
+      <CurrencySelect value={data.currency} onChange={changeCurrency} />
       <section aria-labelledby="roles-heading">
         <h2 id="roles-heading" tabIndex={-1}>
           Roles
