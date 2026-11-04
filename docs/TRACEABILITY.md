@@ -33,12 +33,22 @@ Acceptance criteria from `specs/001-meeting-cost-calculator.md`. "Task" is pre-f
 
 | ID | Requirement | Task | Test | Code |
 |----|-------------|------|------|------|
-| A11Y-1 | Visible, programmatically linked labels | 7, 16 | `src/components/RoleForm.test.tsx`, `src/components/CurrencySelect.test.tsx`, `src/components/RecurrenceSelect.test.tsx` (role, currency and recurrence fields; rest in task 16) | `src/components/RoleForm.tsx` |
-| A11Y-2 | Full keyboard operation, sensible tab order, no traps | 16 | | |
-| A11Y-3 | Visible focus; default outlines not removed | 16 | | |
-| A11Y-4 | Contrast 4.5:1 text, 3:1 large text, borders, focus | 16 | | |
-| A11Y-5 | Errors as text next to field, linked, not colour alone | 7, 10, 16 | `src/components/RoleForm.test.tsx`, `src/components/DurationCalculator.test.tsx` (role and duration forms) | `src/components/RoleForm.tsx`, `src/components/DurationCalculator.tsx` |
-| A11Y-6 | Results and errors announced (`aria-live="polite"`) | 10, 16 | `src/components/DurationCalculator.test.tsx` (total and error status; screen reader check in task 16) | `src/components/DurationCalculator.tsx` |
-| A11Y-7 | `lang`, one `h1`, `main`, real buttons, breakdown as `<table>` | 1, 11, 16 | `src/App.test.tsx` (skeleton: `lang`, one `h1`, `main`), `src/components/CostBreakdown.test.tsx` (breakdown table with header cells; buttons audited in task 16) | `index.html`, `src/App.tsx`, `src/components/CostBreakdown.tsx` |
+| A11Y-1 | Visible, programmatically linked labels | 7, 16 | `src/components/RoleForm.test.tsx`, `src/components/CurrencySelect.test.tsx`, `src/components/RecurrenceSelect.test.tsx` (role, currency and recurrence fields), `src/accessibility.test.tsx` (every field in the app) | `src/components/RoleForm.tsx` |
+| A11Y-2 | Full keyboard operation, sensible tab order, no traps | 16 | `src/accessibility.test.tsx` (core flow by keyboard, Shift+Tab, no positive tabindex; arrow keys in selects are manual) | `src/App.tsx` |
+| A11Y-3 | Visible focus; default outlines not removed | 16 | `src/accessibility.test.tsx` (no outline overrides in any stylesheet) | `src/index.css` |
+| A11Y-4 | Contrast 4.5:1 text, 3:1 large text, borders, focus | 16 | `src/accessibility.test.tsx` (computed contrast of every hard-coded text and border colour; no overridden page or focus colours) | `src/components/RoleForm.module.css`, `src/components/MeetingBuilder.module.css`, `src/components/CostBreakdown.module.css` |
+| A11Y-5 | Errors as text next to field, linked, not colour alone | 7, 10, 16 | `src/components/RoleForm.test.tsx`, `src/components/DurationCalculator.test.tsx` (role and duration forms), `src/accessibility.test.tsx` (error linked to field, text prefix) | `src/components/RoleForm.tsx`, `src/components/DurationCalculator.tsx` |
+| A11Y-6 | Results and errors announced (`aria-live="polite"`) | 10, 16 | `src/components/DurationCalculator.test.tsx` (total and error status; screen reader check is manual), `src/accessibility.test.tsx` (role, headcount and duration errors reach a live region that already exists) | `src/components/DurationCalculator.tsx`, `src/components/RoleForm.tsx`, `src/components/MeetingBuilder.tsx` |
+| A11Y-7 | `lang`, one `h1`, `main`, real buttons, breakdown as `<table>` | 1, 11, 16 | `src/App.test.tsx` (skeleton: `lang`, one `h1`, `main`), `src/components/CostBreakdown.test.tsx` (breakdown table with header cells; `src/accessibility.test.tsx` (heading order, real buttons, table headers)) | `index.html`, `src/App.tsx`, `src/components/CostBreakdown.tsx` |
 | A11Y-8 | Usable at 200% zoom | 15, 16 | `src/layout.test.ts` (viewport allows zoom, text wraps; browser zoom check in task 16) | `index.html`, `src/index.css` |
 | A11Y-9 | Touch targets at least 24 × 24 CSS px | 15, 16 | `src/layout.test.ts` (button, input, select minimum size) | `src/index.css` |
+
+## Manual accessibility checks (task 16, still to run)
+
+The automated tests above cover what jsdom can check. The spec also requires these by hand:
+
+- [ ] axe DevTools on the live page: no serious or critical issues. (`jest-axe` would automate this but is a new dependency, so it needs approval.)
+- [ ] Keyboard-only walkthrough in a real browser, including arrow keys in the currency, role and recurrence selects (A11Y-2).
+- [ ] Focus ring visible on every control (A11Y-3), and the default ring meets 3:1 (A11Y-4).
+- [ ] 200% browser zoom: nothing lost or overlapping (A11Y-8).
+- [ ] NVDA or VoiceOver smoke test of add a role, build a meeting, calculate, change currency; errors and totals are announced (A11Y-6).

@@ -69,11 +69,13 @@ export function MeetingBuilder({ roles, lines, onAddLine }: MeetingBuilderProps)
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? `${headcountId}-error` : undefined}
           />
-          {error && (
-            <p id={`${headcountId}-error`} className={styles.error}>
-              {error}
-            </p>
-          )}
+          <div aria-live="polite">
+            {error && (
+              <p id={`${headcountId}-error`} className={styles.error}>
+                {error}
+              </p>
+            )}
+          </div>
         </div>
         <button type="submit">Add to meeting</button>
       </form>

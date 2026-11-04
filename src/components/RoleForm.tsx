@@ -65,11 +65,13 @@ export function RoleForm({
           aria-invalid={errors.name ? true : undefined}
           aria-describedby={errors.name ? `${nameId}-error` : undefined}
         />
-        {errors.name && (
-          <p id={`${nameId}-error`} className={styles.error}>
-            {errors.name}
-          </p>
-        )}
+        <div aria-live="polite">
+          {errors.name && (
+            <p id={`${nameId}-error`} className={styles.error}>
+              {errors.name}
+            </p>
+          )}
+        </div>
       </div>
       <div className={styles.field}>
         <label htmlFor={salaryId}>Annual salary</label>
@@ -82,11 +84,13 @@ export function RoleForm({
           aria-invalid={errors.salary ? true : undefined}
           aria-describedby={errors.salary ? `${salaryId}-error` : undefined}
         />
-        {errors.salary && (
-          <p id={`${salaryId}-error`} className={styles.error}>
-            {errors.salary}
-          </p>
-        )}
+        <div aria-live="polite">
+          {errors.salary && (
+            <p id={`${salaryId}-error`} className={styles.error}>
+              {errors.salary}
+            </p>
+          )}
+        </div>
       </div>
       <button type="submit">{submitLabel}</button>
       {onCancel && (
