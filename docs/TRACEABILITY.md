@@ -23,7 +23,7 @@ Acceptance criteria from `specs/001-meeting-cost-calculator.md`. "Task" is pre-f
 | AC-17 | US-6 | Roles, salaries and currency persist across reopen | 6, 13, 14 | `src/storage/storage.test.ts`, `src/hooks/usePersistedState.test.ts`, `src/App.test.tsx` (reload keeps roles, salaries, currency) | `src/storage/storage.ts`, `src/hooks/usePersistedState.ts`, `src/App.tsx` |
 | AC-18 | US-6 | No salary, role or meeting data sent to any server | 6, 14 | `src/storage/storage.test.ts` (no network calls from storage), `src/App.test.tsx` (privacy statement) | `src/storage/storage.ts`, `src/App.tsx` |
 | AC-19 | US-6 | Storage unavailable: app works with empty list and says so | 6, 14 | `src/storage/storage.test.ts`, `src/hooks/usePersistedState.test.ts` (fail-soft and `storageFailed` flag), `src/App.test.tsx` (visible notice on load and save failure) | `src/storage/storage.ts`, `src/hooks/usePersistedState.ts`, `src/App.tsx` |
-| AC-20 | US-7 | Phone-sized screen: all tasks without horizontal scrolling | 15, 16 | `src/layout.test.ts` (stylesheet rules; real-device check in task 16) | `src/index.css`, `src/components/*.module.css`, `src/components/CostBreakdown.tsx` |
+| AC-20 | US-7 | Phone-sized screen: all tasks without horizontal scrolling | 15, 16 | `src/layout.test.ts` (stylesheet rules; real-device check in task 16) | `src/index.css`, `src/components/RoleForm.module.css`, `src/components/MeetingBuilder.module.css`, `src/components/RolesPanel.module.css`, `src/components/CostBreakdown.module.css`, `src/components/CostBreakdown.tsx` |
 | AC-21 | US-2 | 2 × £20.00 for 1h 30m = £60.00 | 2, 10 | `src/domain/meeting.test.ts`, `src/components/DurationCalculator.test.tsx`, `src/App.test.tsx` | `src/domain/meeting.ts`, `src/components/DurationCalculator.tsx` |
 | AC-22 | US-2 | Adding an existing role merges into one line (3 + 2 = 5) | 9 | `src/domain/meeting.test.ts`, `src/App.test.tsx` | `src/domain/meeting.ts`, `src/App.tsx` |
 | AC-23 | US-5 | Currency selector offers exactly GBP, USD, CAD, EUR | 5, 13 | `src/domain/currency.test.ts`, `src/components/CurrencySelect.test.tsx` | `src/domain/currency.ts`, `src/components/CurrencySelect.tsx` |
@@ -43,12 +43,12 @@ Acceptance criteria from `specs/001-meeting-cost-calculator.md`. "Task" is pre-f
 | A11Y-8 | Usable at 200% zoom | 15, 16 | `src/layout.test.ts` (viewport allows zoom, text wraps; browser zoom check in task 16) | `index.html`, `src/index.css` |
 | A11Y-9 | Touch targets at least 24 × 24 CSS px | 15, 16 | `src/layout.test.ts` (button, input, select minimum size) | `src/index.css` |
 
-## Manual accessibility checks (task 16, still to run)
+## Manual accessibility checks (open)
 
-The automated tests above cover what jsdom can check. The spec also requires these by hand:
+The automated tests above cover what jsdom can check. The spec's test method also asks for the checks below, which need a real browser or screen reader. They are gaps in the evidence, listed here rather than ticked, and a gap is not a sign the criteria fail.
 
-- [ ] axe DevTools on the live page: no serious or critical issues. (`jest-axe` would automate this but is a new dependency, so it needs approval.)
-- [ ] Keyboard-only walkthrough in a real browser, including arrow keys in the currency, role and recurrence selects (A11Y-2).
-- [ ] Focus ring visible on every control (A11Y-3), and the default ring meets 3:1 (A11Y-4).
-- [ ] 200% browser zoom: nothing lost or overlapping (A11Y-8).
+- [ ] axe DevTools on the live page: no serious or critical issues. (`jest-axe` would automate this but is a new dependency, so it needs approval. An attempt to load axe-core into the page from a CDN was blocked.)
+- [ ] Keyboard-only walkthrough in a real browser, including arrow keys in the currency, role and recurrence selects (A11Y-2). The tab order was read from Chrome on 2026-11-04: 13 controls in visual order, no positive `tabindex`.
+- [ ] Focus ring visible on every control (A11Y-3), and the default ring meets 3:1 (A11Y-4). On 2026-11-04 the Currency select showed the browser's default outline (`:focus-visible`); the other controls were not each checked.
+- [ ] 200% browser zoom: nothing lost or overlapping (A11Y-8). A resize to a phone width was attempted and did not take effect, so this is unchecked in a real browser. Controls measured 40 px high (A11Y-9).
 - [ ] NVDA or VoiceOver smoke test of add a role, build a meeting, calculate, change currency; errors and totals are announced (A11Y-6).
