@@ -40,14 +40,22 @@ export function DurationCalculator({ roles, lines, currency }: DurationCalculato
   // The duration that was last calculated; the total is derived from it so it follows later changes.
   const [duration, setDuration] = useState<Duration | undefined>()
   const [recurrence, setRecurrence] = useState<Recurrence>('once')
-  // True when Calculate was pressed on a meeting with no lines. A meeting that is emptied later
-  // (for example by deleting a role) just clears its figures instead of showing this message.
+  // True when Calculate was pressed on a meeting with no lines (AC-26), whatever the duration. A
+  // meeting that is emptied later (for example by deleting a role) just clears its figures instead
+  // of showing this message.
   const [calculatedEmpty, setCalculatedEmpty] = useState(false)
+
+  // Once the meeting has lines the message is out of date; reset it so it cannot return later
+  // without another Calculate.
+  if (calculatedEmpty && lines.length > 0) {
+    setCalculatedEmpty(false)
+  }
 
   const hasErrors = Object.keys(errors).length > 0
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
+    setCalculatedEmpty(lines.length === 0)
     const result = validateDuration({ hours, minutes })
     if (!result.ok) {
       setErrors(result.errors)
@@ -56,7 +64,6 @@ export function DurationCalculator({ roles, lines, currency }: DurationCalculato
     }
     setErrors({})
     setDuration(result.value)
-    setCalculatedEmpty(lines.length === 0)
   }
 
   // Only present when a valid duration was calculated and the meeting has attendees.
@@ -67,7 +74,7 @@ export function DurationCalculator({ roles, lines, currency }: DurationCalculato
 
   function statusMessages(): string[] {
     if (hasErrors) {
-      return [INVALID_MESSAGE]
+      return calculatedEmpty ? [INVALID_MESSAGE, NO_LINES_MESSAGE] : [INVALID_MESSAGE]
     }
     if (cost) {
       const messages = [`Total cost: ${formatMoney(cost.total, currency)}`]
@@ -77,7 +84,7 @@ export function DurationCalculator({ roles, lines, currency }: DurationCalculato
       }
       return messages
     }
-    return duration && calculatedEmpty && lines.length === 0 ? [NO_LINES_MESSAGE] : []
+    return calculatedEmpty ? [NO_LINES_MESSAGE] : []
   }
 
   return (

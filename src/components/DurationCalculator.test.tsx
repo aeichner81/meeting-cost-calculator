@@ -153,13 +153,85 @@ describe('DurationCalculator', () => {
     expect(region).not.toHaveTextContent('£200.00')
   })
 
-  // Spec gap: no attendees to cost (flagged for review)
-  it('asks for attendees instead of showing a cost when the meeting has no lines', async () => {
-    const user = userEvent.setup()
-    render(<DurationCalculator roles={roles} lines={[]} currency="GBP" />)
-    await calculate(user, '1', '0')
-    expect(screen.getByRole('status')).toHaveTextContent('Add attendees to the meeting first.')
-    expect(screen.queryByText(/total cost/i)).not.toBeInTheDocument()
+  describe('calculating a meeting with no lines (AC-26, A11Y-6)', () => {
+    const NO_LINES = 'Add attendees to the meeting first.'
+
+    function expectNoFigures() {
+      expect(screen.queryByText(/total cost/i)).not.toBeInTheDocument()
+      expect(screen.queryByText(/monthly cost/i)).not.toBeInTheDocument()
+      expect(screen.queryByText(/yearly cost/i)).not.toBeInTheDocument()
+      expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    }
+
+    it('asks for attendees instead of showing a cost, announced in the live region', async () => {
+      const user = userEvent.setup()
+      render(<DurationCalculator roles={roles} lines={[]} currency="GBP" />)
+      const region = screen.getByRole('status')
+      expect(region).toHaveAttribute('aria-live', 'polite')
+
+      await calculate(user, '1', '0')
+
+      expect(region).toHaveTextContent(NO_LINES)
+      expectNoFigures()
+    })
+
+    it('shows no recurring figures for a recurring meeting with no lines', async () => {
+      const user = userEvent.setup()
+      render(<DurationCalculator roles={roles} lines={[]} currency="GBP" />)
+      await user.selectOptions(screen.getByLabelText('Recurrence'), 'weekly')
+      await calculate(user, '2', '0')
+
+      expect(screen.getByRole('status')).toHaveTextContent(NO_LINES)
+      expectNoFigures()
+    })
+
+    it('still asks for attendees when the duration is invalid, alongside the duration error', async () => {
+      const user = userEvent.setup()
+      render(<DurationCalculator roles={roles} lines={[]} currency="GBP" />)
+      await calculate(user, '-1', '0')
+
+      expect(screen.getByRole('status')).toHaveTextContent(NO_LINES)
+      expect(screen.getByLabelText('Hours')).toHaveAccessibleDescription(
+        'Enter hours as a whole number, 0 or more.',
+      )
+      expectNoFigures()
+    })
+
+    it('removes an earlier cost and recurring figures once the meeting is calculated empty', async () => {
+      const user = userEvent.setup()
+      const { rerender } = render(<DurationCalculator roles={roles} lines={lines} currency="GBP" />)
+      await user.selectOptions(screen.getByLabelText('Recurrence'), 'weekly')
+      await calculate(user, '2', '0')
+      expect(screen.getByText('Yearly cost: £10,400.00')).toBeInTheDocument()
+
+      rerender(<DurationCalculator roles={roles} lines={[]} currency="GBP" />)
+      await calculate(user, '2', '0')
+
+      expect(screen.getByRole('status')).toHaveTextContent(NO_LINES)
+      expectNoFigures()
+    })
+
+    it('drops the message once attendees are added, and shows a cost for the earlier duration only after Calculate', async () => {
+      const user = userEvent.setup()
+      const { rerender } = render(<DurationCalculator roles={roles} lines={[]} currency="GBP" />)
+      await calculate(user, '2', '0')
+      rerender(<DurationCalculator roles={roles} lines={lines} currency="GBP" />)
+      expect(screen.getByRole('status')).not.toHaveTextContent(NO_LINES)
+
+      await calculate(user, '2', '0')
+      expect(screen.getByText('Total cost: £200.00')).toBeInTheDocument()
+    })
+
+    it('does not bring the message back when lines are removed after it was cleared', async () => {
+      const user = userEvent.setup()
+      const { rerender } = render(<DurationCalculator roles={roles} lines={[]} currency="GBP" />)
+      await calculate(user, '2', '0')
+      rerender(<DurationCalculator roles={roles} lines={lines} currency="GBP" />)
+      rerender(<DurationCalculator roles={roles} lines={[]} currency="GBP" />)
+
+      expect(screen.getByRole('status')).not.toHaveTextContent(NO_LINES)
+      expectNoFigures()
+    })
   })
 
   it('keeps the total current when the meeting lines change', async () => {
