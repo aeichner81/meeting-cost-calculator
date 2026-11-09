@@ -1,6 +1,7 @@
 import spec from '../specs/001-meeting-cost-calculator.md?raw'
 import traceability from '../docs/TRACEABILITY.md?raw'
 import readme from '../README.md?raw'
+import tasks from '../docs/TASKS.md?raw'
 
 // Documentation checks for task 17: the traceability table is complete and honest, and the README tells the story.
 
@@ -17,11 +18,20 @@ interface Row {
 function traceabilityRows(): Row[] {
   return traceability
     .split('\n')
-    .filter((line) => /^\| (AC|A11Y)-\d+ /.test(line))
+    .filter((line) => /^\| (AC|A11Y|UX)-\d+ /.test(line))
     .map((line) => {
       const cells = line.split('|').slice(1, -1).map((cell) => cell.trim())
       return { id: cells[0], cells }
     })
+}
+
+// Task numbers ticked in TASKS.md, such as "18" for "- [x] **18. Delete cascade.**".
+const doneTasks = new Set([...tasks.matchAll(/^- \[x\] \*\*(\d+)\./gm)].map((match) => match[1]))
+
+// A row may say "pending" only while none of its tasks is ticked.
+function isPending(task: string, testCell: string): boolean {
+  const numbers = task.split(',').map((part) => part.trim())
+  return /^pending/.test(testCell) && numbers.every((number) => !doneTasks.has(number))
 }
 
 function specIds(pattern: RegExp): string[] {
@@ -33,7 +43,13 @@ describe('traceability table', () => {
 
   it('has a row for every acceptance criterion in the spec', () => {
     const ids = specIds(/^- (AC-\d+) \(/gm)
-    expect(ids).toHaveLength(24)
+    expect(ids).toHaveLength(26)
+    expect(rows.map((row) => row.id)).toEqual(expect.arrayContaining(ids))
+  })
+
+  it('has a row for every visual design requirement in the spec', () => {
+    const ids = specIds(/^\s+- (UX-\d+) \*\*/gm)
+    expect(ids).toHaveLength(6)
     expect(rows.map((row) => row.id)).toEqual(expect.arrayContaining(ids))
   })
 
@@ -47,6 +63,11 @@ describe('traceability table', () => {
     // Columns: id, summary or requirement, [story,] task, test, code. Task, test and code are the last three.
     const [task, test, code] = cells.slice(-3)
     expect(task).not.toBe('')
+    // Work that is not built yet may say "pending". Once its task is ticked the row needs real paths.
+    if (isPending(task, test)) {
+      expect(code).toMatch(/^pending/)
+      return
+    }
     expect(test).toMatch(/`src\//)
     expect(code).toMatch(/`(src\/|index\.html)/)
   })

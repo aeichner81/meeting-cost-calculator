@@ -14,6 +14,8 @@ export function App() {
   const { data, setData, storageFailed } = usePersistedState()
   // Meetings are not saved in v1, so this stays in memory only (AC-24).
   const [lines, setLines] = useState<MeetingLine[]>([])
+  // Tells the user when deleting a role removed its line from the meeting (AC-25).
+  const [meetingNotice, setMeetingNotice] = useState('')
 
   function addRole(name: string, annualSalary: number) {
     const role = { id: crypto.randomUUID(), name, annualSalary }
@@ -28,6 +30,9 @@ export function App() {
   }
 
   function deleteRole(id: string) {
+    const role = data.roles.find((candidate) => candidate.id === id)
+    const hadLine = lines.some((line) => line.roleId === id)
+    setMeetingNotice(role && hadLine ? `${role.name} was removed from the meeting.` : '')
     setData((previous) => ({ ...previous, roles: previous.roles.filter((role) => role.id !== id) }))
     setLines((previous) => previous.filter((line) => line.roleId !== id))
   }
@@ -37,6 +42,7 @@ export function App() {
   }
 
   function addLine(roleId: string, headcount: number) {
+    setMeetingNotice('')
     setLines((previous) => addMeetingLine(previous, roleId, headcount))
   }
 
@@ -70,6 +76,9 @@ export function App() {
       </section>
       <section aria-labelledby="meeting-heading">
         <h2 id="meeting-heading">Meeting</h2>
+        <div role="status" aria-label="Meeting notice">
+          {meetingNotice && <p className={styles.notice}>{meetingNotice}</p>}
+        </div>
         <MeetingBuilder roles={data.roles} lines={lines} onAddLine={addLine} />
         {data.roles.length > 0 && (
           <DurationCalculator roles={data.roles} lines={lines} currency={data.currency} />

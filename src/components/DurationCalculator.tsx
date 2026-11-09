@@ -40,6 +40,9 @@ export function DurationCalculator({ roles, lines, currency }: DurationCalculato
   // The duration that was last calculated; the total is derived from it so it follows later changes.
   const [duration, setDuration] = useState<Duration | undefined>()
   const [recurrence, setRecurrence] = useState<Recurrence>('once')
+  // True when Calculate was pressed on a meeting with no lines. A meeting that is emptied later
+  // (for example by deleting a role) just clears its figures instead of showing this message.
+  const [calculatedEmpty, setCalculatedEmpty] = useState(false)
 
   const hasErrors = Object.keys(errors).length > 0
 
@@ -53,6 +56,7 @@ export function DurationCalculator({ roles, lines, currency }: DurationCalculato
     }
     setErrors({})
     setDuration(result.value)
+    setCalculatedEmpty(lines.length === 0)
   }
 
   // Only present when a valid duration was calculated and the meeting has attendees.
@@ -73,7 +77,7 @@ export function DurationCalculator({ roles, lines, currency }: DurationCalculato
       }
       return messages
     }
-    return duration ? [NO_LINES_MESSAGE] : []
+    return duration && calculatedEmpty && lines.length === 0 ? [NO_LINES_MESSAGE] : []
   }
 
   return (

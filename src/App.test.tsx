@@ -195,6 +195,112 @@ describe('duration and calculate (AC-5, AC-6, AC-21)', () => {
   })
 })
 
+describe('deleting a role used in the meeting (AC-25, A11Y-6)', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  async function addRole(user: ReturnType<typeof userEvent.setup>, name: string, salary: string) {
+    await user.type(screen.getByLabelText('Role name'), name)
+    await user.type(screen.getByLabelText('Annual salary'), salary)
+    await user.click(screen.getByRole('button', { name: 'Add role' }))
+  }
+
+  async function addToMeeting(
+    user: ReturnType<typeof userEvent.setup>,
+    role: string,
+    headcount: string,
+  ) {
+    await user.selectOptions(screen.getByLabelText('Role'), role)
+    await user.clear(screen.getByLabelText('Headcount'))
+    await user.type(screen.getByLabelText('Headcount'), headcount)
+    await user.click(screen.getByRole('button', { name: 'Add to meeting' }))
+  }
+
+  async function calculate(user: ReturnType<typeof userEvent.setup>, hours: string) {
+    await user.type(screen.getByLabelText('Hours'), hours)
+    await user.click(screen.getByRole('button', { name: 'Calculate' }))
+  }
+
+  async function setUpTwoRoleMeeting(user: ReturnType<typeof userEvent.setup>) {
+    await addRole(user, 'Developer', '36400')
+    await addRole(user, 'Manager', '72800')
+    await addToMeeting(user, 'Developer', '3')
+    await addToMeeting(user, 'Manager', '1')
+  }
+
+  it('removes the role line and a shown cost no longer includes it', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await setUpTwoRoleMeeting(user)
+    await calculate(user, '2')
+    expect(screen.getByText('Total cost: £200.00')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Delete Developer' }))
+
+    const list = screen.getByRole('list', { name: 'Meeting lines' })
+    expect(within(list).queryByText('Developer')).not.toBeInTheDocument()
+    expect(within(list).getByText('Manager')).toBeInTheDocument()
+    expect(screen.queryByText('Total cost: £200.00')).not.toBeInTheDocument()
+    expect(screen.getByText('Total cost: £80.00')).toBeInTheDocument()
+  })
+
+  it('says in a live region which role line was removed', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await setUpTwoRoleMeeting(user)
+
+    await user.click(screen.getByRole('button', { name: 'Delete Developer' }))
+
+    const notice = screen.getByRole('status', { name: 'Meeting notice' })
+    expect(notice).toHaveTextContent('Developer was removed from the meeting.')
+  })
+
+  it('clears the cost, breakdown and recurring figures when no lines remain', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await addRole(user, 'Developer', '36400')
+    await addRole(user, 'Manager', '72800')
+    await addToMeeting(user, 'Developer', '3')
+    await user.selectOptions(screen.getByLabelText('Recurrence'), 'weekly')
+    await calculate(user, '2')
+    expect(screen.getByText(/Yearly cost:/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Delete Developer' }))
+
+    expect(screen.queryByText(/Total cost:/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Monthly cost:/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Yearly cost:/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    expect(screen.queryByText(/add attendees/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('status', { name: 'Meeting notice' })).toHaveTextContent(
+      'Developer was removed from the meeting.',
+    )
+  })
+
+  it('gives no notice when the deleted role was not in the meeting', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await setUpTwoRoleMeeting(user)
+    await addRole(user, 'Designer', '50000')
+
+    await user.click(screen.getByRole('button', { name: 'Delete Designer' }))
+
+    expect(screen.getByRole('status', { name: 'Meeting notice' })).toBeEmptyDOMElement()
+  })
+
+  it('removes the notice once the meeting changes again', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await setUpTwoRoleMeeting(user)
+    await user.click(screen.getByRole('button', { name: 'Delete Developer' }))
+
+    await addToMeeting(user, 'Manager', '2')
+
+    expect(screen.getByRole('status', { name: 'Meeting notice' })).toBeEmptyDOMElement()
+  })
+})
+
 describe('currency selector (AC-14, AC-15, AC-16, AC-17)', () => {
   beforeEach(() => {
     localStorage.clear()

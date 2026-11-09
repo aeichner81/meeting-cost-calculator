@@ -1,5 +1,6 @@
 # Spec 001: Meeting Cost Calculator
 Status: Approved
+Revision 2 (2026-11-08): adds AC-25 and AC-26 (meeting behaviour found by the audit), US-8 and the visual design requirements UX-1 to UX-6. Nothing in revision 1 changes.
 
 ## 1. Problem
 Managers rarely see what their meetings cost. Without that, it is hard to judge which meetings are worth having and which are not. The app makes the cost of a meeting visible, in money, based on who attends and how long it lasts, so the manager can make that decision. The app supplies cost data only. The manager decides whether a meeting is worth it.
@@ -16,6 +17,7 @@ Managers rarely see what their meetings cost. Without that, it is hard to judge 
 - US-5: As a manager, I want to choose a currency (pounds sterling, US dollars, Canadian dollars or euros; default pounds sterling), so that costs are shown in the currency I think in.
 - US-6: As a manager, I want my roles, salaries and currency saved in my browser, so that I don't have to re-enter them each visit.
 - US-7: As a manager, I want the app to work on a phone or tablet as well as a desktop, so that I can check a meeting's cost wherever I am.
+- US-8: As a manager, I want a clean, minimal and good-looking interface in which fields and results line up neatly, so that I can read a meeting's cost at a glance and the tool feels pleasant to use.
 
 
 ## 4. Acceptance criteria
@@ -34,6 +36,9 @@ Managers rarely see what their meetings cost. Without that, it is hard to judge 
 - AC-7 (US-3): Given the meeting in AC-6, when the cost is shown, then the breakdown lists role A £120.00 and role B £80.00, which add up to the total.
 - AC-8 (US-2): Given no roles are defined, when I open the meeting calculator, then the app tells me to add a role first and offers a way to do so.
 - AC-9 (US-2): Given I enter a headcount below 1 or a non-whole headcount, hours that are negative or not a whole number, minutes outside 0–59 or not a whole number, or a total duration of zero, when the cost is calculated, then the app shows a clear error and no cost. An empty hours or minutes field counts as 0.
+
+- AC-25 (US-2): Given a meeting has a line for role A and other lines, when I delete role A from the role list, then the meeting no longer has a line for role A, any cost already shown no longer includes role A, and the app tells me (in text, announced to screen readers) that role A's line was removed from the meeting. If no lines remain, any shown cost, breakdown and recurring figures are cleared.
+- AC-26 (US-2): Given the meeting has no lines, when I calculate, then the app shows a clear message that I need to add attendees to the meeting first, shows no cost, and announces the message to screen readers. This applies even when the duration is valid.
 
 **Recurring meetings (US-4)**
 - AC-10 (US-4): Given a meeting costing £200.00 per occurrence, when I set it to repeat weekly, then the app shows a monthly cost of £866.67 (52 ÷ 12 occurrences) and a yearly cost of £10,400.00 (52 occurrences).
@@ -68,6 +73,14 @@ Managers rarely see what their meetings cost. Without that, it is hard to judge 
   - A11Y-8 **Zoom:** at 200% browser zoom, all content and controls remain usable without loss of content.
   - A11Y-9 **Touch targets:** buttons and other interactive controls are at least 24 × 24 CSS pixels.
   - **How it is tested:** an automated check (for example axe DevTools) reports no serious or critical issues; a keyboard-only walkthrough of the core flow (add a role, build a meeting, calculate, change currency); and a short screen reader smoke test of the same flow with NVDA (Windows) or VoiceOver (Mac/iOS).
+- **Visual design (US-8):** the interface is minimal and polished rather than decorated. UX-1 to UX-6 must hold. Taste is subjective, so acceptance is the owner's review of screenshots at desktop and phone width, plus the automated checks listed below.
+  - UX-1 **Alignment of fields:** within each form, labels sit in one consistent position relative to their fields (above, left-aligned), fields and buttons share common left edges and a common row height, and fields of the same kind have the same width. Related fields (hours and minutes; role and headcount) sit side by side on a desktop and stack on a phone.
+  - UX-2 **Alignment of results:** money amounts in the breakdown and recurring figures are right-aligned with tabular figures, so decimal points line up in a column. The total is the most prominent figure on screen. The per-occurrence, monthly and yearly figures sit together in one results block with consistent labels.
+  - UX-3 **Minimal palette and type:** one accent colour plus neutrals, one system font stack with no web fonts or other external requests (privacy, AC-18), and a small fixed set of sizes and spacing steps defined once as CSS variables.
+  - UX-4 **Hierarchy and grouping:** each section (currency, roles, meeting, results) is clearly grouped with consistent spacing and heading sizes. The primary action in each form (Add role, Add to meeting, Calculate) looks different from secondary actions (Edit, Cancel) and from destructive ones (Delete).
+  - UX-5 **Consistent states:** buttons, inputs and selects share one style for rest, hover, focus, disabled and error states. Errors stay as text, as A11Y-5 requires.
+  - UX-6 **No regression:** the redesign must not break any AC, A11Y-1 to A11Y-9 (including contrast, visible default focus, 24 × 24 px targets and no horizontal scrolling at phone width) or the privacy rule of no external requests.
+  - **How it is tested:** automated stylesheet checks (design tokens defined once, no external fonts or URLs, right-aligned numeric columns with tabular figures, the existing layout and accessibility tests unchanged and passing), then the owner reviews desktop and phone-width screenshots against UX-1 to UX-5.
 - **Performance:** the app should feel quick and responsive. There are no formal targets. It has no required "update as you type" behaviour, so a Calculate action is acceptable.
 - **Privacy:** all data stays in the user's browser (local storage). There are no accounts, no server calls with user data and no analytics that capture salary or role data. Salary data is sensitive, so the app should say clearly where it is stored.
 - **Compatibility:** latest versions of the major browsers (Chrome, Edge, Firefox, Safari). Designed desktop-first, with a layout that works well on mobile devices where possible.
@@ -85,6 +98,7 @@ Managers rarely see what their meetings cost. Without that, it is hard to judge 
 - Currency conversion (currency is a display label only)
 - Export and import of the role table
 - Full WCAG 2.2 AA conformance
+- Dark mode or theming, a logo or branding, custom or web fonts, illustrations and animations (the redesign is layout, spacing, colour and type only)
 
 ## 7. Resolved questions
 - **Duration units:** entered as hours and minutes (two fields). See AC-5, AC-9, AC-21.
@@ -93,3 +107,7 @@ Managers rarely see what their meetings cost. Without that, it is hard to judge 
 - **Maximum values:** no maximum for salary or headcount in v1. See AC-4, AC-5.
 - **Saving meetings:** meetings are throwaway in v1; only roles and currency persist. Saved meetings are planned for a later version. See AC-24.
 - **Lighter accessibility baseline:** defined as A11Y-1 to A11Y-9 in section 5, with a test method.
+- **Deleting a role used in the meeting (revision 2):** its line is removed from the meeting and the user is told. Silent removal was rejected. See AC-25.
+- **Calculating an empty meeting (revision 2):** a clear "add attendees first" message, no cost. See AC-26.
+- **Look and feel (revision 2):** minimal, aligned, one accent colour, system fonts only. Defined as UX-1 to UX-6 in section 5.
+- **Still open (not decided in revision 2):** whether the shown total updates by itself when lines change after Calculate, and whether the duration section stays hidden until a role exists. Current behaviour stays but is not specified.
