@@ -49,12 +49,12 @@ Acceptance criteria from `specs/001-meeting-cost-calculator.md`. "Task" is pre-f
 
 | ID | Requirement | Task | Test | Code |
 |----|-------------|------|------|------|
-| UX-1 | Fields aligned: labels above, shared edges and row height, same-kind fields same width; related fields side by side, stacked on a phone | 20 | pending (task 20) | pending (task 20) |
-| UX-2 | Results aligned: money right-aligned with tabular figures, total most prominent, one results block | 20 | pending (task 20) | pending (task 20) |
-| UX-3 | One accent colour, neutrals, system fonts only, tokens defined once as CSS variables | 20 | pending (task 20) | pending (task 20) |
-| UX-4 | Clear section grouping; primary, secondary and destructive buttons look different | 20 | pending (task 20) | pending (task 20) |
-| UX-5 | One consistent style for rest, hover, focus, disabled and error states | 20 | pending (task 20) | pending (task 20) |
-| UX-6 | No regression of any AC, A11Y-1 to A11Y-9, or the no-external-requests rule | 20 | pending (task 20) | pending (task 20) |
+| UX-1 | Fields aligned: labels above, shared edges and row height, same-kind fields same width; related fields side by side, stacked on a phone | 20 | `src/design.test.ts` (labels above, shared grid, one row height, stacked on a phone) | `src/components/MeetingBuilder.module.css`, `src/components/RoleForm.module.css`, `src/index.css` |
+| UX-2 | Results aligned: money right-aligned with tabular figures, total most prominent, one results block | 20 | `src/design.test.ts` (right-aligned tabular figures, total largest, one results block) | `src/components/Results.module.css`, `src/components/CostBreakdown.module.css`, `src/components/RolesPanel.module.css`, `src/components/DurationCalculator.tsx` |
+| UX-3 | One accent colour, neutrals, system fonts only, tokens defined once as CSS variables | 20 | `src/design.test.ts` (tokens defined once, one accent, system fonts, no external requests) | `src/index.css` |
+| UX-4 | Clear section grouping; primary, secondary and destructive buttons look different | 20 | `src/design.test.ts` (section spacing, heading sizes, primary, secondary and destructive buttons) | `src/index.css`, `src/App.module.css`, `src/components/RolesPanel.tsx` |
+| UX-5 | One consistent style for rest, hover, focus, disabled and error states | 20 | `src/design.test.ts` (shared hover, disabled and error styles; error text prefix; no outline overrides) | `src/index.css` |
+| UX-6 | No regression of any AC, A11Y-1 to A11Y-9, or the no-external-requests rule | 20 | `src/design.test.ts`, `src/layout.test.ts`, `src/accessibility.test.tsx` (all existing tests pass; one contrast test now reads the colour tokens) | `src/index.css` |
 
 The visual review (UX-1 to UX-5) is the owner's, from desktop and phone-width screenshots, and is not ticked until it happens.
 

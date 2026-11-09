@@ -27,25 +27,30 @@ export function RolesPanel({ roles, currency, onEdit, onDelete }: RolesPanelProp
   return (
     <ul className={styles.list}>
       {roles.map((role) => (
-        <li key={role.id}>
+        <li key={role.id} className={styles.item}>
           {editingId === role.id ? (
-            <RoleForm
-              label={`Edit ${role.name}`}
-              initialName={role.name}
-              initialSalary={role.annualSalary}
-              submitLabel="Save"
-              onAdd={(name, annualSalary) => saveEdit(role.id, name, annualSalary)}
-              onCancel={() => setEditingId(null)}
-            />
+            <div className={styles.editing}>
+              <RoleForm
+                label={`Edit ${role.name}`}
+                initialName={role.name}
+                initialSalary={role.annualSalary}
+                submitLabel="Save"
+                onAdd={(name, annualSalary) => saveEdit(role.id, name, annualSalary)}
+                onCancel={() => setEditingId(null)}
+              />
+            </div>
           ) : (
             <>
-              <span>{role.name}</span> <span>{formatMoney(role.annualSalary, currency)}</span>{' '}
-              <button type="button" onClick={() => setEditingId(role.id)}>
-                Edit {role.name}
-              </button>{' '}
-              <button type="button" onClick={() => onDelete(role.id)}>
-                Delete {role.name}
-              </button>
+              <span>{role.name}</span>
+              <span className={styles.amount}>{formatMoney(role.annualSalary, currency)}</span>
+              <span className={styles.actions}>
+                <button type="button" onClick={() => setEditingId(role.id)}>
+                  Edit {role.name}
+                </button>
+                <button type="button" className="destructive" onClick={() => onDelete(role.id)}>
+                  Delete {role.name}
+                </button>
+              </span>
             </>
           )}
         </li>

@@ -1,3 +1,40 @@
 .list {
-  padding-left: 1.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.amount {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* Edit mode: the form takes the whole row. */
+.editing {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 40rem) {
+  .item {
+    grid-template-columns: 1fr auto;
+  }
+
+  .actions {
+    grid-column: 1 / -1;
+    flex-direction: column;
+  }
 }

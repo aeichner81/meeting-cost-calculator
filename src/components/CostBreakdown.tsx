@@ -24,7 +24,7 @@ export function CostBreakdown({ cost, currency }: CostBreakdownProps) {
           {cost.lines.map((line) => (
             <tr key={line.roleId}>
               <th scope="row">{line.roleName}</th>
-              <td>{line.headcount}</td>
+              <td className={styles.number}>{line.headcount}</td>
               <td>{formatMoney(line.cost, currency)}</td>
             </tr>
           ))}

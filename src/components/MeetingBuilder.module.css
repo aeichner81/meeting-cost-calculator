@@ -1,20 +1,33 @@
+/* Shared by every form on the page (UX-1): fields share one grid, labels sit above. */
 .form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--space-3);
+  align-items: start;
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--space-1);
   min-width: 0;
+}
+
+.field input,
+.field select {
+  width: 100%;
+}
+
+/* Buttons line up with the input row, below the label height (one line plus the field gap). */
+.form button {
+  justify-self: start;
+  margin-top: calc(var(--size-small) * 1.5 + var(--space-1));
 }
 
 .error {
   margin: 0;
-  color: #b00020;
+  color: var(--color-error);
+  font-size: var(--size-small);
 }
 
 .error::before {
@@ -24,7 +37,10 @@
 
 @media (max-width: 40rem) {
   .form {
-    flex-direction: column;
-    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .form button {
+    margin-top: 0;
   }
 }

@@ -61,8 +61,10 @@ export function App() {
           </p>
         )}
       </div>
-      <CurrencySelect value={data.currency} onChange={changeCurrency} />
-      <section aria-labelledby="roles-heading">
+      <div className={styles.currency}>
+        <CurrencySelect value={data.currency} onChange={changeCurrency} />
+      </div>
+      <section aria-labelledby="roles-heading" className={styles.section}>
         <h2 id="roles-heading" tabIndex={-1}>
           Roles
         </h2>
@@ -74,7 +76,7 @@ export function App() {
           onDelete={deleteRole}
         />
       </section>
-      <section aria-labelledby="meeting-heading">
+      <section aria-labelledby="meeting-heading" className={styles.section}>
         <h2 id="meeting-heading">Meeting</h2>
         <div role="status" aria-label="Meeting notice">
           {meetingNotice && <p className={styles.notice}>{meetingNotice}</p>}

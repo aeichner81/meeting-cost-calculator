@@ -11,11 +11,17 @@ import type { MeetingErrors } from '../domain/validation'
 import { CostBreakdown } from './CostBreakdown'
 import { RecurrenceSelect } from './RecurrenceSelect'
 import styles from './MeetingBuilder.module.css'
+import results from './Results.module.css'
 
 interface DurationCalculatorProps {
   roles: Role[]
   lines: MeetingLine[]
   currency: CurrencyCode
+}
+
+interface StatusMessage {
+  text: string
+  className?: string
 }
 
 const NO_LINES_MESSAGE = 'Add attendees to the meeting first.'
@@ -72,20 +78,33 @@ export function DurationCalculator({ roles, lines, currency }: DurationCalculato
   // Monthly and yearly figures exist only for recurring meetings (AC-13).
   const recurring = cost ? recurringCost(cost.total, recurrence) : null
 
-  function statusMessages(): string[] {
+  function statusMessages(): StatusMessage[] {
     if (hasErrors) {
-      return calculatedEmpty ? [INVALID_MESSAGE, NO_LINES_MESSAGE] : [INVALID_MESSAGE]
+      return calculatedEmpty
+        ? [{ text: INVALID_MESSAGE }, { text: NO_LINES_MESSAGE }]
+        : [{ text: INVALID_MESSAGE }]
     }
     if (cost) {
-      const messages = [`Total cost: ${formatMoney(cost.total, currency)}`]
+      const messages: StatusMessage[] = [
+        { text: `Total cost: ${formatMoney(cost.total, currency)}`, className: results.total },
+      ]
       if (recurring) {
-        messages.push(`Monthly cost: ${formatMoney(recurring.monthly, currency)}`)
-        messages.push(`Yearly cost: ${formatMoney(recurring.yearly, currency)}`)
+        messages.push({
+          text: `Monthly cost: ${formatMoney(recurring.monthly, currency)}`,
+          className: results.figure,
+        })
+        messages.push({
+          text: `Yearly cost: ${formatMoney(recurring.yearly, currency)}`,
+          className: results.figure,
+        })
       }
       return messages
     }
-    return calculatedEmpty ? [NO_LINES_MESSAGE] : []
+    return calculatedEmpty ? [{ text: NO_LINES_MESSAGE }] : []
   }
+
+  const messages = statusMessages()
+  const showBreakdown = !hasErrors && cost
 
   return (
     <>
@@ -132,12 +151,21 @@ export function DurationCalculator({ roles, lines, currency }: DurationCalculato
         <RecurrenceSelect value={recurrence} onChange={setRecurrence} />
         <button type="submit">Calculate</button>
       </form>
-      <div role="status" aria-live="polite">
-        {statusMessages().map((message) => (
-          <p key={message}>{message}</p>
-        ))}
+      {/* One results block (UX-2). The live region stays mounted so changes are announced (A11Y-6). */}
+      <div className={messages.length > 0 ? results.results : undefined}>
+        <div role="status" aria-live="polite">
+          {messages.map((message) => (
+            <p key={message.text} className={message.className}>
+              {message.text}
+            </p>
+          ))}
+        </div>
+        {showBreakdown && (
+          <div className={results.breakdown}>
+            <CostBreakdown cost={cost} currency={currency} />
+          </div>
+        )}
       </div>
-      {!hasErrors && cost && <CostBreakdown cost={cost} currency={currency} />}
     </>
   )
 }

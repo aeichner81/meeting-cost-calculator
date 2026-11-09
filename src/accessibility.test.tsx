@@ -268,9 +268,12 @@ describe('contrast (A11Y-4)', () => {
   })
 
   it('keeps every hard-coded text colour at 4.5:1 on a white page', () => {
-    const textColours = [...allCss.matchAll(/(?<![-\w])color:\s*(#[0-9a-fA-F]{6})\b/g)].map(
-      (match) => match[1],
-    )
+    // Colours are chosen once, as --color-* tokens in index.css (task 20), so those count as text colours.
+    const textColours = [
+      ...allCss.matchAll(
+        /(?<![-\w])(?:--color-(?:text|muted|accent|error)|color):\s*(#[0-9a-fA-F]{6})\b/g,
+      ),
+    ].map((match) => match[1])
     expect(textColours.length).toBeGreaterThan(0)
     textColours.forEach((colour) => {
       expect(contrast(colour, white), colour).toBeGreaterThanOrEqual(4.5)
