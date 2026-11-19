@@ -1,6 +1,6 @@
 # Plan: Meeting Cost Calculator
 
-Implements `specs/001-meeting-cost-calculator.md`. Task order and AC coverage are in `TASKS.md`; AC-to-test-to-code links are in `TRACEABILITY.md`.
+Implements `specs/001-meeting-cost-calculator.md` and its addendum `specs/002-persistent-meetings.md` (saved meetings, see the spec 002 sections below). Task order and AC coverage are in `TASKS.md`; AC-to-test-to-code links are in `TRACEABILITY.md`.
 
 ## Architecture
 
@@ -56,3 +56,61 @@ For A11Y automation, `jest-axe` is a candidate but is a new dependency, so ask b
 
 - Add `jest-axe`? (needs approval)
 - Repo name for the Pages `base` path is assumed to be `meeting-cost-calculator`.
+
+## Spec 002: persistent meetings
+
+Adds saving, loading and deleting named meetings in this browser (US-9 to US-11, AC-27 to AC-40). Tasks 21 to 29 in `TASKS.md`.
+
+### Architecture additions
+
+- `src/domain/savedMeetings.ts`: pure functions. `normaliseName` (trim), `sameName` (trimmed, case-insensitive), `upsertMeeting`, `removeMeeting`, `sortByName`, and `resolveLines(saved, roles)`, which returns `{ lines, droppedRoleNames }` for the current roles.
+- `src/storage/savedMeetings.ts`: fail-soft `loadSavedMeetings` and `saveSavedMeetings` under their own key, shape-checked like `storage.ts`.
+- `src/hooks/useSavedMeetings.ts`: same pattern as `usePersistedState`, with its own `storageFailed` flag.
+- `src/components/SavedMeetings.tsx` (+ `.module.css` and test): meeting name field, Save meeting, saved-meeting select, Load, Delete, the empty state and inline confirmations. Placed as its own section after the Meeting section.
+- `DurationCalculator` gets optional props `initialHours`, `initialMinutes`, `initialRecurrence` and `onSetupChange`. `App` keeps the setup the calculator reports, so Save can read it. To load a meeting, `App` sets new initial values and remounts the calculator with a new `key`. Calls without the new props behave exactly as now.
+
+Folder structure additions:
+
+```
+src/
+  domain/      savedMeetings.ts (+ test)
+  storage/     savedMeetings.ts (+ test)
+  hooks/       useSavedMeetings.ts (+ test)
+  components/  SavedMeetings (.tsx, .module.css, test)
+```
+
+### Data model additions
+
+- `SavedMeeting { name: string; lines: SavedLine[]; duration: Duration; recurrence: Recurrence; currency: CurrencyCode }`
+- `SavedLine { roleId: string; roleName: string; headcount: number }`
+- Stored as an array under key `mcc:meetings:v1`. `mcc:v1` is unchanged and still holds only `{ roles, currency }`. The working meeting stays in memory and is cleared on reload (AC-24).
+
+### Key decisions
+
+11. **Separate storage key and hook.** Unreadable or unsaveable meeting data can never wipe roles or currency (AC-39), and the existing storage code and tests stay as they are.
+12. **Saved meetings refer to roles; they don't copy salaries.** Lines keep `roleId` and costs always use the current roles (AC-32). `roleName` is kept only so the notice can name a role that has since been deleted (AC-33). Deleting a role does not change saved meetings (spec 002, AC-25 note).
+13. **Loading remounts the calculator.** Lines come from `resolveLines`, duration and recurrence become the calculator's initial values, and the remount clears any shown cost until the user presses Calculate (AC-31). Currency is set through the existing `setData` (AC-17).
+14. **Inline confirmations.** Replace (AC-30), load over a meeting with lines (AC-34) and delete (AC-36) show a message with real Confirm and Cancel buttons. Focus moves to Confirm, and back to the control that opened it afterwards; the message is announced (A11Y-2, A11Y-6, A11Y-7). Not `window.confirm`, which jsdom does not implement and which cannot be styled to UX-4/UX-5.
+15. **Save validation reuses existing rules.** Duration is checked with `validateDuration` from `src/domain/validation.ts`, and an empty meeting gets the AC-26 message text (AC-29). The name check follows the role-name pattern in `RoleForm` (AC-28, A11Y-5).
+
+### Testing
+
+Domain and storage tests cover the spec 002 worked example (AC-32), name matching (AC-30), dropped lines (AC-33) and every storage failure case (AC-39). Component and `App` tests cover save, load, delete, confirmations, notices and reload. A keyboard walkthrough of save, load and delete is added in task 29.
+
+### Existing tests affected by spec 002
+
+| Test | Change | Why | Task |
+|---|---|---|---|
+| `src/docs.test.ts`, "has a row for every acceptance criterion" | Read spec 002 as well; expect 40 ACs instead of 26 | AC-27 to AC-40 need traceability rows | 21 |
+| `src/accessibility.test.tsx`, "uses every label the spec names" | Add `Meeting name` and `Saved meeting` | A11Y-1 gains two fields under spec 002 | 25, 26 |
+| `src/accessibility.test.tsx`, `allCss` list | Add `SavedMeetings.module.css` | Otherwise the focus (A11Y-3) and contrast (A11Y-4) checks skip the new stylesheet | 29 |
+| `src/design.test.ts`, `sheets` map and component stylesheet list | Add `SavedMeetings.module.css` | The token, no-external-request and spacing checks (UX-3, UX-6) must cover the new section | 29 |
+| `src/App.test.tsx`, "says where data is stored and that nothing is sent anywhere (AC-18)" | Assert that the statement mentions saved meetings | The app text "Meetings are not saved." becomes false and is replaced (spec 002 privacy change) | 28 |
+| `src/App.test.tsx`, "keeps roles and salaries but clears the meeting after a reload (AC-17, AC-24)" | Save a meeting first; assert it is still listed after reload while the working meeting is cleared; tag with AC-37 | AC-24 is clarified by AC-37 | 28 |
+| `src/App.test.tsx`, the AC-19 storage tests | Add assertions that a saved-meetings failure shows its notice and leaves roles and currency alone | AC-39 extends AC-19 | 28 |
+
+Unchanged: `storage.test.ts` and `usePersistedState.test.ts` (separate key; `mcc:v1` still holds only roles and currency), `DurationCalculator.test.tsx` (the new props are optional), the existing keyboard walkthrough (the new section comes after Calculate) and all domain tests.
+
+### Open points
+
+- Inline confirmations (decision 14) rather than a modal dialog. Change before task 25 if the owner prefers otherwise.
