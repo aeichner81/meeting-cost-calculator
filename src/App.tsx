@@ -21,7 +21,7 @@ const EMPTY_SETUP: MeetingSetup = { hours: '', minutes: '', recurrence: 'once' }
 export function App() {
   const { data, setData, storageFailed } = usePersistedState()
   // Kept under their own storage key, apart from roles and currency (spec 002, AC-39).
-  const { meetings, setMeetings } = useSavedMeetings()
+  const { meetings, setMeetings, storageFailed: meetingsStorageFailed } = useSavedMeetings()
   // The working meeting stays in memory only and is cleared on reload (AC-24); saved
   // meetings are separate copies (spec 002).
   const [lines, setLines] = useState<MeetingLine[]>([])
@@ -114,8 +114,9 @@ export function App() {
     <main className={styles.main}>
       <h1>Meeting Cost Calculator</h1>
       <p className={styles.privacy}>
-        Roles, salaries and your currency are stored only in this browser and are never sent to a
-        server. Meetings are not saved.
+        Roles, salaries, your currency and your saved meetings are stored only in this browser and
+        are never sent to a server. The meeting you are working on is cleared when you close the
+        app.
       </p>
       <div role="status" aria-label="Storage notice">
         {storageFailed && (
@@ -161,6 +162,16 @@ export function App() {
       </section>
       <section aria-labelledby="saved-heading" className={styles.section}>
         <h2 id="saved-heading">Saved meetings</h2>
+        {/* Separate from the roles notice: a saved-meetings failure leaves roles and currency
+            alone (AC-39). */}
+        <div role="status" aria-label="Saved meetings storage notice">
+          {meetingsStorageFailed && (
+            <p className={styles.notice}>
+              Saved meetings could not be loaded or saved in this browser. The calculator still
+              works, but meetings you save will not be kept after you close it.
+            </p>
+          )}
+        </div>
         <SavedMeetings
           meetings={meetings}
           roles={data.roles}

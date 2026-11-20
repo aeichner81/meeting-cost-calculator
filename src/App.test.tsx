@@ -424,13 +424,14 @@ describe('edit and delete roles (AC-3)', () => {
   })
 })
 
-describe('persistence behaviours (AC-17, AC-18, AC-19, AC-24)', () => {
+describe('persistence behaviours (AC-17, AC-18, AC-19, AC-24, AC-37, AC-38, AC-39)', () => {
   beforeEach(() => {
     localStorage.clear()
   })
 
   afterEach(() => {
     vi.restoreAllMocks()
+    vi.unstubAllGlobals()
   })
 
   async function addRole(user: ReturnType<typeof userEvent.setup>, name: string, salary: string) {
@@ -439,14 +440,55 @@ describe('persistence behaviours (AC-17, AC-18, AC-19, AC-24)', () => {
     await user.click(screen.getByRole('button', { name: 'Add role' }))
   }
 
-  it('keeps roles and salaries but clears the meeting after a reload (AC-17, AC-24)', async () => {
-    const user = userEvent.setup()
-    const { unmount } = render(<App />)
-    await addRole(user, 'Developer', '36400')
+  async function buildMeeting(user: ReturnType<typeof userEvent.setup>) {
     await user.selectOptions(screen.getByLabelText('Role'), 'Developer')
     await user.click(screen.getByRole('button', { name: 'Add to meeting' }))
     await user.type(screen.getByLabelText('Hours'), '2')
     await user.selectOptions(screen.getByLabelText('Recurrence'), 'weekly')
+  }
+
+  async function saveAs(user: ReturnType<typeof userEvent.setup>, name: string) {
+    await user.clear(screen.getByLabelText('Meeting name'))
+    await user.type(screen.getByLabelText('Meeting name'), name)
+    await user.click(screen.getByRole('button', { name: 'Save meeting' }))
+  }
+
+  function savedMeetingNames() {
+    return within(screen.getByLabelText('Saved meeting'))
+      .getAllByRole('option')
+      .map((option) => option.textContent)
+  }
+
+  function rolesNotice() {
+    return screen.getByRole('status', { name: 'Storage notice' })
+  }
+
+  function meetingsStorageNotice() {
+    return screen.getByRole('status', { name: 'Saved meetings storage notice' })
+  }
+
+  // Lets roles and currency be stored while every write of saved meetings fails.
+  function failMeetingWrites() {
+    const realSetItem = Storage.prototype.setItem
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (
+      this: Storage,
+      key: string,
+      value: string,
+    ) {
+      if (key === 'mcc:meetings:v1') {
+        throw new DOMException('full', 'QuotaExceededError')
+      }
+      realSetItem.call(this, key, value)
+    })
+  }
+
+  it('keeps roles, salaries and saved meetings but clears the working meeting after a reload (AC-17, AC-24, AC-37)', async () => {
+    const user = userEvent.setup()
+    const { unmount } = render(<App />)
+    await addRole(user, 'Developer', '36400')
+    await buildMeeting(user)
+    await saveAs(user, 'weekly sync')
+    await saveAs(user, 'Annual review')
     await user.click(screen.getByRole('button', { name: 'Calculate' }))
     expect(screen.getByRole('list', { name: 'Meeting lines' })).toBeInTheDocument()
 
@@ -454,34 +496,56 @@ describe('persistence behaviours (AC-17, AC-18, AC-19, AC-24)', () => {
     render(<App />)
 
     expect(screen.getByText('£36,400.00')).toBeInTheDocument()
+    expect(savedMeetingNames()).toEqual(['Annual review', 'weekly sync'])
     expect(screen.queryByRole('list', { name: 'Meeting lines' })).not.toBeInTheDocument()
     expect(screen.getByLabelText('Hours')).toHaveValue('')
     expect(screen.getByLabelText('Recurrence')).toHaveValue('once')
     expect(screen.queryByText(/Total cost/)).not.toBeInTheDocument()
   })
 
-  it('says where data is stored and that nothing is sent anywhere (AC-18)', () => {
+  it('says where data is stored, including saved meetings, and that nothing is sent anywhere (AC-18, AC-38)', () => {
     render(<App />)
-    expect(screen.getByText(/stored only in this browser/i)).toBeInTheDocument()
+    expect(screen.getByText(/stored only in this browser/i)).toHaveTextContent(/saved meetings/i)
     expect(screen.getByText(/never sent to a server/i)).toBeInTheDocument()
+    expect(screen.queryByText(/Meetings are not saved/i)).not.toBeInTheDocument()
   })
 
-  it('shows no storage notice when storage works (AC-19)', () => {
+  it('sends nothing to a server when saving, loading or deleting meetings (AC-38)', async () => {
+    const fetchSpy = vi.fn()
+    vi.stubGlobal('fetch', fetchSpy)
+    const openSpy = vi.spyOn(XMLHttpRequest.prototype, 'open')
+    const user = userEvent.setup()
+    render(<App />)
+    await addRole(user, 'Developer', '36400')
+    await buildMeeting(user)
+
+    await saveAs(user, 'Weekly sync')
+    await user.click(screen.getByRole('button', { name: 'Load' }))
+    await user.click(screen.getByRole('button', { name: 'Load and replace' }))
+    await user.click(screen.getByRole('button', { name: 'Delete saved meeting' }))
+    await user.click(screen.getByRole('button', { name: 'Delete' }))
+
+    expect(screen.getByText('No saved meetings yet.')).toBeInTheDocument()
+    expect(fetchSpy).not.toHaveBeenCalled()
+    expect(openSpy).not.toHaveBeenCalled()
+  })
+
+  it('shows no storage notice when storage works (AC-19, AC-39)', () => {
     render(<App />)
     expect(screen.queryByText(/could not be loaded or saved/i)).not.toBeInTheDocument()
   })
 
-  it('still works and tells the user when storage cannot be read (AC-19)', async () => {
+  it('still works and tells the user when storage cannot be read (AC-19, AC-39)', async () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new DOMException('denied', 'SecurityError')
     })
     const user = userEvent.setup()
     render(<App />)
 
-    expect(screen.getByRole('status', { name: 'Storage notice' })).toHaveTextContent(
-      /could not be loaded or saved/i,
-    )
+    expect(rolesNotice()).toHaveTextContent(/could not be loaded or saved/i)
+    expect(meetingsStorageNotice()).toHaveTextContent(/saved meetings could not be loaded or saved/i)
     expect(screen.getByText('No roles yet.')).toBeInTheDocument()
+    expect(screen.getByText('No saved meetings yet.')).toBeInTheDocument()
 
     await addRole(user, 'Developer', '36400')
     expect(within(screen.getByRole('list')).getByText('Developer')).toBeInTheDocument()
@@ -497,10 +561,46 @@ describe('persistence behaviours (AC-17, AC-18, AC-19, AC-24)', () => {
 
     await addRole(user, 'Developer', '36400')
 
-    expect(screen.getByRole('status', { name: 'Storage notice' })).toHaveTextContent(
-      /could not be loaded or saved/i,
-    )
+    expect(rolesNotice()).toHaveTextContent(/could not be loaded or saved/i)
     expect(within(screen.getByRole('list')).getByText('Developer')).toBeInTheDocument()
+  })
+
+  it('keeps roles and currency when the saved-meeting data cannot be read (AC-39)', () => {
+    localStorage.setItem(
+      'mcc:v1',
+      JSON.stringify({ roles: [{ id: 'a', name: 'Developer', annualSalary: 36400 }], currency: 'USD' }),
+    )
+    localStorage.setItem('mcc:meetings:v1', '{not json')
+    render(<App />)
+
+    expect(meetingsStorageNotice()).toHaveTextContent(/saved meetings could not be loaded or saved/i)
+    expect(rolesNotice()).toBeEmptyDOMElement()
+    expect(screen.getByText('US$36,400.00')).toBeInTheDocument()
+    expect(screen.getByLabelText('Currency')).toHaveValue('USD')
+    expect(screen.getByText('No saved meetings yet.')).toBeInTheDocument()
+  })
+
+  it('tells the user when saving a meeting fails and leaves roles and currency alone (AC-39)', async () => {
+    failMeetingWrites()
+    const user = userEvent.setup()
+    const { unmount } = render(<App />)
+    await user.selectOptions(screen.getByLabelText('Currency'), 'EUR')
+    await addRole(user, 'Developer', '36400')
+    await buildMeeting(user)
+    expect(screen.queryByText(/could not be loaded or saved/i)).not.toBeInTheDocument()
+
+    await saveAs(user, 'Weekly sync')
+
+    expect(meetingsStorageNotice()).toHaveTextContent(/saved meetings could not be loaded or saved/i)
+    expect(rolesNotice()).toBeEmptyDOMElement()
+    // The app keeps working: the meeting can still be calculated.
+    await user.click(screen.getByRole('button', { name: 'Calculate' }))
+    expect(screen.getByText(/Total cost/)).toBeInTheDocument()
+
+    unmount()
+    render(<App />)
+    expect(screen.getByText('€36,400.00')).toBeInTheDocument()
+    expect(screen.getByLabelText('Currency')).toHaveValue('EUR')
   })
 })
 
