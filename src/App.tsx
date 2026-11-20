@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { addMeetingLine } from './domain/meeting'
-import { upsertMeeting } from './domain/savedMeetings'
+import { removeMeeting, upsertMeeting } from './domain/savedMeetings'
 import type { SavedMeeting } from './domain/savedMeetings'
 import type { CurrencyCode } from './domain/currency'
 import type { MeetingLine } from './domain/types'
@@ -96,6 +96,11 @@ export function App() {
     changeCurrency(loaded.currency)
   }
 
+  // The component has already asked for confirmation; the working meeting is left alone (AC-36).
+  function deleteMeeting(name: string) {
+    setMeetings((previous) => removeMeeting(previous, name))
+  }
+
   function changeCurrency(currency: CurrencyCode) {
     setData((previous) => ({ ...previous, currency }))
   }
@@ -164,6 +169,7 @@ export function App() {
           readSetup={readSetup}
           onSave={saveMeeting}
           onLoad={loadMeeting}
+          onDelete={deleteMeeting}
         />
       </section>
     </main>

@@ -850,3 +850,104 @@ describe('loading a saved meeting (AC-31, AC-32, AC-33, AC-34, AC-35)', () => {
     expect(screen.getByLabelText('Recurrence')).toHaveValue('once')
   })
 })
+
+describe('deleting a saved meeting (AC-36)', () => {
+  const ROLES = [
+    { id: 'a', name: 'Developer', annualSalary: 36400 },
+    { id: 'b', name: 'Manager', annualSalary: 72800 },
+  ]
+
+  function savedMeeting(name: string) {
+    return {
+      name,
+      lines: [{ roleId: 'b', roleName: 'Manager', headcount: 2 }],
+      duration: { hours: 2, minutes: 0 },
+      recurrence: 'weekly',
+      currency: 'USD',
+    }
+  }
+
+  function storedNames() {
+    const stored = JSON.parse(localStorage.getItem('mcc:meetings:v1') ?? '[]')
+    return stored.map((meeting: { name: string }) => meeting.name)
+  }
+
+  function optionTexts() {
+    return within(screen.getByLabelText('Saved meeting'))
+      .getAllByRole('option')
+      .map((option) => option.textContent)
+  }
+
+  // A working meeting with a shown cost: 1 Developer for 1 hour, £20.00.
+  async function buildAndCalculate(user: ReturnType<typeof userEvent.setup>) {
+    await user.selectOptions(screen.getByLabelText('Role'), 'Developer')
+    await user.clear(screen.getByLabelText('Headcount'))
+    await user.type(screen.getByLabelText('Headcount'), '1')
+    await user.click(screen.getByRole('button', { name: 'Add to meeting' }))
+    await user.type(screen.getByLabelText('Hours'), '1')
+    await user.click(screen.getByRole('button', { name: 'Calculate' }))
+    expect(screen.getByText('Total cost: £20.00')).toBeInTheDocument()
+  }
+
+  function expectWorkingMeetingUnchanged() {
+    const list = screen.getByRole('list', { name: 'Meeting lines' })
+    const lines = within(list)
+      .getAllByRole('listitem')
+      .map((item) => item.textContent)
+    expect(lines).toEqual(['Developer 1'])
+    expect(screen.getByLabelText('Hours')).toHaveValue('1')
+    expect(screen.getByLabelText('Currency')).toHaveValue('GBP')
+    expect(screen.getByText('Total cost: £20.00')).toBeInTheDocument()
+  }
+
+  beforeEach(() => {
+    localStorage.clear()
+    localStorage.setItem('mcc:v1', JSON.stringify({ roles: ROLES, currency: 'GBP' }))
+    localStorage.setItem(
+      'mcc:meetings:v1',
+      JSON.stringify([savedMeeting('Monthly review'), savedMeeting('Weekly sync')]),
+    )
+  })
+
+  it('removes the meeting from the list and storage when confirmed; working meeting unchanged', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await buildAndCalculate(user)
+
+    await user.selectOptions(screen.getByLabelText('Saved meeting'), 'Weekly sync')
+    await user.click(screen.getByRole('button', { name: 'Delete saved meeting' }))
+    await user.click(screen.getByRole('button', { name: 'Delete' }))
+
+    expect(optionTexts()).toEqual(['Monthly review'])
+    expect(storedNames()).toEqual(['Monthly review'])
+    expectWorkingMeetingUnchanged()
+  })
+
+  it('keeps the meeting when cancelled; working meeting unchanged', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await buildAndCalculate(user)
+
+    await user.selectOptions(screen.getByLabelText('Saved meeting'), 'Weekly sync')
+    await user.click(screen.getByRole('button', { name: 'Delete saved meeting' }))
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    expect(optionTexts()).toEqual(['Monthly review', 'Weekly sync'])
+    expect(storedNames()).toEqual(['Monthly review', 'Weekly sync'])
+    expectWorkingMeetingUnchanged()
+  })
+
+  it('shows the empty state once the last saved meeting is deleted', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    for (let count = 0; count < 2; count += 1) {
+      await user.click(screen.getByRole('button', { name: 'Delete saved meeting' }))
+      await user.click(screen.getByRole('button', { name: 'Delete' }))
+    }
+
+    expect(screen.getByText('No saved meetings yet.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Delete saved meeting' })).not.toBeInTheDocument()
+    expect(storedNames()).toEqual([])
+  })
+})

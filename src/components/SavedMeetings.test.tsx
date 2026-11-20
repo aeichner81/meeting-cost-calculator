@@ -36,6 +36,7 @@ interface SetupOptions {
 function renderSaved(options: SetupOptions = {}) {
   const onSave = vi.fn()
   const onLoad = vi.fn()
+  const onDelete = vi.fn()
   const setup = options.setup ?? VALID_SETUP
   render(
     <SavedMeetings
@@ -46,9 +47,10 @@ function renderSaved(options: SetupOptions = {}) {
       readSetup={() => setup}
       onSave={onSave}
       onLoad={onLoad}
+      onDelete={onDelete}
     />,
   )
-  return { onSave, onLoad, user: userEvent.setup() }
+  return { onSave, onLoad, onDelete, user: userEvent.setup() }
 }
 
 function notice() {
@@ -421,5 +423,92 @@ describe('loading over a meeting with lines (AC-34, A11Y-2, A11Y-6)', () => {
     await user.keyboard('{Enter}')
 
     expect(onLoad).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('deleting a saved meeting (AC-36, A11Y-2, A11Y-6)', () => {
+  async function askToDelete(user: ReturnType<typeof userEvent.setup>, name: string) {
+    await user.selectOptions(screen.getByLabelText('Saved meeting'), name)
+    await user.click(screen.getByRole('button', { name: 'Delete saved meeting' }))
+  }
+
+  it('offers a destructive Delete saved meeting button next to Load (UX-4)', () => {
+    renderSaved({ meetings: TWO_MEETINGS })
+
+    expect(screen.getByRole('button', { name: 'Delete saved meeting' })).toHaveClass('destructive')
+  })
+
+  it('asks before deleting and moves focus to the confirm button', async () => {
+    const { onDelete, user } = renderSaved({ meetings: TWO_MEETINGS })
+    const region = notice()
+    await askToDelete(user, 'Weekly sync')
+
+    expect(onDelete).not.toHaveBeenCalled()
+    expect(region).toHaveTextContent('Delete the saved meeting "Weekly sync"?')
+    expect(screen.getByRole('button', { name: 'Delete' })).toHaveFocus()
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+  })
+
+  it('deletes the chosen meeting when confirmed, announces it and returns focus', async () => {
+    const { onDelete, onLoad, onSave, user } = renderSaved({ meetings: TWO_MEETINGS })
+    await askToDelete(user, 'Weekly sync')
+    await user.click(screen.getByRole('button', { name: 'Delete' }))
+
+    expect(onDelete).toHaveBeenCalledTimes(1)
+    expect(onDelete).toHaveBeenCalledWith('Weekly sync')
+    expect(onLoad).not.toHaveBeenCalled()
+    expect(onSave).not.toHaveBeenCalled()
+    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
+    expect(notice()).toHaveTextContent('Deleted meeting "Weekly sync".')
+    expect(screen.getByRole('button', { name: 'Delete saved meeting' })).toHaveFocus()
+  })
+
+  it('deletes nothing when cancelled and returns focus to Delete saved meeting', async () => {
+    const { onDelete, user } = renderSaved({ meetings: TWO_MEETINGS })
+    await askToDelete(user, 'Weekly sync')
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    expect(onDelete).not.toHaveBeenCalled()
+    expect(notice()).not.toHaveTextContent('Delete the saved meeting')
+    expect(screen.getByRole('button', { name: 'Delete saved meeting' })).toHaveFocus()
+  })
+
+  it('asks even when the working meeting has no lines', async () => {
+    const { onDelete, user } = renderSaved({ meetings: TWO_MEETINGS, lines: [] })
+    await askToDelete(user, 'Monthly review')
+
+    expect(onDelete).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'Delete' })).toHaveFocus()
+  })
+
+  it('can be confirmed with the keyboard alone (A11Y-2)', async () => {
+    const { onDelete, user } = renderSaved({ meetings: TWO_MEETINGS })
+    screen.getByRole('button', { name: 'Delete saved meeting' }).focus()
+    await user.keyboard('{Enter}')
+    await user.keyboard('{Enter}')
+
+    expect(onDelete).toHaveBeenCalledWith('Monthly review')
+  })
+
+  it('moves focus to the meeting name field when the last saved meeting is deleted (A11Y-7)', async () => {
+    const onDelete = vi.fn()
+    const props = {
+      roles: ROLES,
+      lines: LINES,
+      currency: 'USD' as CurrencyCode,
+      readSetup: () => VALID_SETUP,
+      onSave: vi.fn(),
+      onLoad: vi.fn(),
+      onDelete,
+    }
+    const user = userEvent.setup()
+    const { rerender } = render(<SavedMeetings {...props} meetings={[WEEKLY_SYNC]} />)
+    await user.click(screen.getByRole('button', { name: 'Delete saved meeting' }))
+    await user.click(screen.getByRole('button', { name: 'Delete' }))
+    rerender(<SavedMeetings {...props} meetings={[]} />)
+
+    expect(onDelete).toHaveBeenCalledWith('Weekly sync')
+    expect(screen.getByText('No saved meetings yet.')).toBeInTheDocument()
+    expect(screen.getByLabelText('Meeting name')).toHaveFocus()
   })
 })

@@ -29,15 +29,18 @@ interface SavedMeetingsProps {
   readSetup: () => MeetingSetup
   onSave: (meeting: SavedMeeting) => void
   onLoad: (meeting: LoadedMeeting) => void
+  onDelete: (name: string) => void
 }
 
 type MeetingCheck = { ok: true; meeting: SavedMeeting } | { ok: false; messages: string[] }
 
 // A question waiting for the user's answer: replace a saved meeting with the same name (AC-30),
-// or replace a working meeting that has lines with a loaded one (AC-34).
+// replace a working meeting that has lines with a loaded one (AC-34), or delete a saved
+// meeting (AC-36).
 type Pending =
   | { kind: 'replace'; meeting: SavedMeeting; existingName: string }
   | { kind: 'load'; meeting: SavedMeeting }
+  | { kind: 'delete'; meeting: SavedMeeting }
 
 const NAME_ERROR = 'Enter a meeting name.'
 
@@ -76,11 +79,29 @@ function question(pending: Pending): string {
   if (pending.kind === 'replace') {
     return `A saved meeting named "${pending.existingName}" already exists. Replace it?`
   }
-  return `Loading "${pending.meeting.name}" replaces the current meeting. Load it anyway?`
+  if (pending.kind === 'load') {
+    return `Loading "${pending.meeting.name}" replaces the current meeting. Load it anyway?`
+  }
+  return `Delete the saved meeting "${pending.meeting.name}"?`
+}
+
+function confirmLabel(pending: Pending): string {
+  if (pending.kind === 'replace') {
+    return 'Replace'
+  }
+  if (pending.kind === 'load') {
+    return 'Load and replace'
+  }
+  return 'Delete'
+}
+
+// The confirm button for a delete uses the destructive style (UX-4).
+function confirmClassName(pending: Pending): string | undefined {
+  return pending.kind === 'delete' ? 'destructive' : undefined
 }
 
 export function SavedMeetings(props: SavedMeetingsProps) {
-  const { meetings, roles, lines, onSave, onLoad } = props
+  const { meetings, roles, lines, onSave, onLoad, onDelete } = props
   const idPrefix = useId()
   const nameId = `${idPrefix}-name`
   const nameErrorId = `${nameId}-error`
@@ -92,6 +113,8 @@ export function SavedMeetings(props: SavedMeetingsProps) {
   const [chosenName, setChosenName] = useState('')
   const saveButton = useRef<HTMLButtonElement>(null)
   const loadButton = useRef<HTMLButtonElement>(null)
+  const deleteButton = useRef<HTMLButtonElement>(null)
+  const nameField = useRef<HTMLInputElement>(null)
   const confirmButton = useRef<HTMLButtonElement>(null)
 
   // Falls back to the first meeting until one is chosen, or if the chosen one is gone.
@@ -123,6 +146,12 @@ export function SavedMeetings(props: SavedMeetingsProps) {
       `Loaded meeting "${meeting.name}".`,
       ...resolved.droppedRoleNames.map(droppedLineMessage),
     ])
+  }
+
+  // Only the saved-meetings list changes; the working meeting is left alone (AC-36).
+  function remove(meeting: SavedMeeting) {
+    onDelete(meeting.name)
+    setMessages([`Deleted meeting "${meeting.name}".`])
   }
 
   function handleSave(event: FormEvent) {
@@ -157,9 +186,21 @@ export function SavedMeetings(props: SavedMeetingsProps) {
     load(chosen)
   }
 
+  // Always asks, whatever the working meeting holds (AC-36).
+  function handleDelete() {
+    if (!chosen) {
+      return
+    }
+    setMessages([])
+    setPending({ kind: 'delete', meeting: chosen })
+  }
+
   // Focus goes back to the button that opened the question (A11Y-7).
   function returnFocusFor(closed: Pending): RefObject<HTMLButtonElement | null> {
-    return closed.kind === 'replace' ? saveButton : loadButton
+    if (closed.kind === 'replace') {
+      return saveButton
+    }
+    return closed.kind === 'load' ? loadButton : deleteButton
   }
 
   function closeConfirmation() {
@@ -170,7 +211,24 @@ export function SavedMeetings(props: SavedMeetingsProps) {
     returnFocusFor(pending).current?.focus()
   }
 
+  // Deleting the last saved meeting removes the Delete button, so focus goes to the meeting
+  // name field instead (A11Y-7).
+  function confirmDelete(meeting: SavedMeeting) {
+    const wasLast = meetings.length === 1
+    remove(meeting)
+    setPending(undefined)
+    if (wasLast) {
+      nameField.current?.focus()
+    } else {
+      deleteButton.current?.focus()
+    }
+  }
+
   function confirm() {
+    if (pending?.kind === 'delete') {
+      confirmDelete(pending.meeting)
+      return
+    }
     if (pending?.kind === 'replace') {
       save(pending.meeting)
     }
@@ -187,6 +245,7 @@ export function SavedMeetings(props: SavedMeetingsProps) {
           <label htmlFor={nameId}>Meeting name</label>
           <input
             id={nameId}
+            ref={nameField}
             type="text"
             value={name}
             onChange={(event) => setName(event.target.value)}
@@ -224,6 +283,9 @@ export function SavedMeetings(props: SavedMeetingsProps) {
           <button type="submit" ref={loadButton}>
             Load
           </button>
+          <button type="button" className="destructive" ref={deleteButton} onClick={handleDelete}>
+            Delete saved meeting
+          </button>
         </form>
       ) : (
         // No load or delete action until something is saved (AC-35).
@@ -239,8 +301,13 @@ export function SavedMeetings(props: SavedMeetingsProps) {
       </div>
       {pending && (
         <div>
-          <button type="button" ref={confirmButton} onClick={confirm}>
-            {pending.kind === 'replace' ? 'Replace' : 'Load and replace'}
+          <button
+            type="button"
+            className={confirmClassName(pending)}
+            ref={confirmButton}
+            onClick={confirm}
+          >
+            {confirmLabel(pending)}
           </button>
           <button type="button" onClick={closeConfirmation}>
             Cancel
