@@ -1,9 +1,12 @@
-import spec from '../specs/001-meeting-cost-calculator.md?raw'
+import spec001 from '../specs/001-meeting-cost-calculator.md?raw'
+import spec002 from '../specs/002-persistent-meetings.md?raw'
 import traceability from '../docs/TRACEABILITY.md?raw'
 import readme from '../README.md?raw'
 import tasks from '../docs/TASKS.md?raw'
 
 // Documentation checks for task 17: the traceability table is complete and honest, and the README tells the story.
+// Task 21: spec 002 continues the AC numbering from spec 001, so both specs are read together.
+const specs = [spec001, spec002].join('\n')
 
 // Source and test files in src/, as paths such as "src/App.tsx". The globs are lazy, so only the keys are read.
 const sourceFiles = new Set(
@@ -35,15 +38,15 @@ function isPending(task: string, testCell: string): boolean {
 }
 
 function specIds(pattern: RegExp): string[] {
-  return [...new Set([...spec.matchAll(pattern)].map((match) => match[1]))]
+  return [...new Set([...specs.matchAll(pattern)].map((match) => match[1]))]
 }
 
 describe('traceability table', () => {
   const rows = traceabilityRows()
 
-  it('has a row for every acceptance criterion in the spec', () => {
+  it('has a row for every acceptance criterion in specs 001 and 002', () => {
     const ids = specIds(/^- (AC-\d+) \(/gm)
-    expect(ids).toHaveLength(26)
+    expect(ids).toHaveLength(40)
     expect(rows.map((row) => row.id)).toEqual(expect.arrayContaining(ids))
   })
 

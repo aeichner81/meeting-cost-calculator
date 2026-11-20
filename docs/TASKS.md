@@ -28,7 +28,7 @@ Change request, spec 001 revision 2 (2026-11-08). Same rules: tests first, then 
 
 Change request, spec 002 (persistent meetings). Same rules: tests first, then code; stop when tests, lint and build pass; tick the box and update `TRACEABILITY.md`. Design and the list of existing tests that change are in `PLAN.md`, section "Spec 002: persistent meetings".
 
-- [ ] **21. Traceability for spec 002.** `docs.test.ts` reads both specs and expects 40 acceptance criteria; add `pending` rows for AC-27 to AC-40 to `TRACEABILITY.md`. Covers: documentation.
+- [x] **21. Traceability for spec 002.** `docs.test.ts` reads both specs and expects 40 acceptance criteria; add `pending` rows for AC-27 to AC-40 to `TRACEABILITY.md`. Covers: documentation.
 - [ ] **22. Domain: saved meetings.** Pure functions for trimming and matching names (ignoring case), saving or replacing, removing, sorting by name, and resolving saved lines against the current roles (keeping current salaries, collecting the names of deleted roles). Covers: AC-28, AC-30, AC-32, AC-33, AC-36, AC-37.
 - [ ] **23. Storage: saved meetings.** Fail-soft load and save under `mcc:meetings:v1` with shape checks and no network calls, plus a `useSavedMeetings` hook. A failure here never touches roles or currency. Covers: AC-37, AC-38, AC-39.
 - [ ] **24. Lift the meeting setup.** Optional initial hours, minutes and recurrence and an `onSetupChange` callback on `DurationCalculator`; `App` keeps the current setup. No visible change; all existing tests stay green. Covers: groundwork for AC-27 and AC-31.
