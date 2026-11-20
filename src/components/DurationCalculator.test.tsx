@@ -299,4 +299,117 @@ describe('DurationCalculator', () => {
       expect(screen.getByRole('status')).toHaveTextContent('Yearly cost: £10,400.00')
     })
   })
+
+  // Groundwork for spec 002: Save reads the setup (AC-27) and Load sets it (AC-31).
+  describe('meeting setup (initial values and onSetupChange)', () => {
+    it('starts with empty fields and "Once" when no initial values are given', () => {
+      render(<DurationCalculator roles={roles} lines={lines} currency="GBP" />)
+      expect(screen.getByLabelText('Hours')).toHaveValue('')
+      expect(screen.getByLabelText('Minutes')).toHaveValue('')
+      expect(screen.getByLabelText('Recurrence')).toHaveValue('once')
+    })
+
+    it('fills the fields from the initial hours, minutes and recurrence', () => {
+      render(
+        <DurationCalculator
+          roles={roles}
+          lines={lines}
+          currency="GBP"
+          initialHours="1"
+          initialMinutes="30"
+          initialRecurrence="weekly"
+        />,
+      )
+      expect(screen.getByLabelText('Hours')).toHaveValue('1')
+      expect(screen.getByLabelText('Minutes')).toHaveValue('30')
+      expect(screen.getByLabelText('Recurrence')).toHaveValue('weekly')
+    })
+
+    it('shows no cost for initial values until Calculate is pressed', async () => {
+      const user = userEvent.setup()
+      render(
+        <DurationCalculator
+          roles={roles}
+          lines={lines}
+          currency="GBP"
+          initialHours="2"
+          initialMinutes="0"
+          initialRecurrence="weekly"
+        />,
+      )
+      expect(screen.queryByText(/total cost/i)).not.toBeInTheDocument()
+
+      await user.click(screen.getByRole('button', { name: 'Calculate' }))
+      expect(screen.getByText('Total cost: £200.00')).toBeInTheDocument()
+      expect(screen.getByText('Yearly cost: £10,400.00')).toBeInTheDocument()
+    })
+
+    it('reports the hours, minutes and recurrence as they change', async () => {
+      const user = userEvent.setup()
+      const onSetupChange = vi.fn()
+      render(
+        <DurationCalculator
+          roles={roles}
+          lines={lines}
+          currency="GBP"
+          onSetupChange={onSetupChange}
+        />,
+      )
+
+      await user.type(screen.getByLabelText('Hours'), '2')
+      expect(onSetupChange).toHaveBeenLastCalledWith({ hours: '2', minutes: '', recurrence: 'once' })
+
+      await user.type(screen.getByLabelText('Minutes'), '15')
+      expect(onSetupChange).toHaveBeenLastCalledWith({
+        hours: '2',
+        minutes: '15',
+        recurrence: 'once',
+      })
+
+      await user.selectOptions(screen.getByLabelText('Recurrence'), 'monthly')
+      expect(onSetupChange).toHaveBeenLastCalledWith({
+        hours: '2',
+        minutes: '15',
+        recurrence: 'monthly',
+      })
+    })
+
+    it('reports changes on top of the initial values', async () => {
+      const user = userEvent.setup()
+      const onSetupChange = vi.fn()
+      render(
+        <DurationCalculator
+          roles={roles}
+          lines={lines}
+          currency="GBP"
+          initialHours="1"
+          initialMinutes="30"
+          initialRecurrence="weekly"
+          onSetupChange={onSetupChange}
+        />,
+      )
+
+      await user.selectOptions(screen.getByLabelText('Recurrence'), 'daily')
+      expect(onSetupChange).toHaveBeenLastCalledWith({
+        hours: '1',
+        minutes: '30',
+        recurrence: 'daily',
+      })
+    })
+
+    it('reports the raw field text, even when it is not a valid duration', async () => {
+      const user = userEvent.setup()
+      const onSetupChange = vi.fn()
+      render(
+        <DurationCalculator
+          roles={roles}
+          lines={lines}
+          currency="GBP"
+          onSetupChange={onSetupChange}
+        />,
+      )
+      await user.type(screen.getByLabelText('Hours'), 'x')
+      expect(onSetupChange).toHaveBeenLastCalledWith({ hours: 'x', minutes: '', recurrence: 'once' })
+    })
+  })
 })

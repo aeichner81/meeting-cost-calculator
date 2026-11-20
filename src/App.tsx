@@ -1,14 +1,17 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { addMeetingLine } from './domain/meeting'
 import type { CurrencyCode } from './domain/currency'
 import type { MeetingLine } from './domain/types'
 import { CurrencySelect } from './components/CurrencySelect'
 import { DurationCalculator } from './components/DurationCalculator'
+import type { MeetingSetup } from './components/DurationCalculator'
 import { MeetingBuilder } from './components/MeetingBuilder'
 import { RoleForm } from './components/RoleForm'
 import { RolesPanel } from './components/RolesPanel'
 import { usePersistedState } from './hooks/usePersistedState'
 import styles from './App.module.css'
+
+const EMPTY_SETUP: MeetingSetup = { hours: '', minutes: '', recurrence: 'once' }
 
 export function App() {
   const { data, setData, storageFailed } = usePersistedState()
@@ -16,6 +19,10 @@ export function App() {
   const [lines, setLines] = useState<MeetingLine[]>([])
   // Tells the user when deleting a role removed its line from the meeting (AC-25).
   const [meetingNotice, setMeetingNotice] = useState('')
+  // The duration and recurrence as the calculator last reported them, so Save can read them
+  // (spec 002, AC-27). A ref, because nothing on screen depends on it and Save reads it in its
+  // click handler. Starts at the calculator's defaults; in memory only (AC-24).
+  const setupRef = useRef<MeetingSetup>(EMPTY_SETUP)
 
   function addRole(name: string, annualSalary: number) {
     const role = { id: crypto.randomUUID(), name, annualSalary }
@@ -35,6 +42,20 @@ export function App() {
     setMeetingNotice(role && hadLine ? `${role.name} was removed from the meeting.` : '')
     setData((previous) => ({ ...previous, roles: previous.roles.filter((role) => role.id !== id) }))
     setLines((previous) => previous.filter((line) => line.roleId !== id))
+    resetSetupIfNoRolesRemain(id)
+  }
+
+  function keepSetup(setup: MeetingSetup) {
+    setupRef.current = setup
+  }
+
+  // With no roles the calculator is removed, and it comes back with empty fields. Keep the
+  // setup in step with that so Save never reads values the user can no longer see.
+  function resetSetupIfNoRolesRemain(deletedId: string) {
+    const remaining = data.roles.filter((role) => role.id !== deletedId)
+    if (remaining.length === 0) {
+      keepSetup(EMPTY_SETUP)
+    }
   }
 
   function changeCurrency(currency: CurrencyCode) {
@@ -83,7 +104,12 @@ export function App() {
         </div>
         <MeetingBuilder roles={data.roles} lines={lines} onAddLine={addLine} />
         {data.roles.length > 0 && (
-          <DurationCalculator roles={data.roles} lines={lines} currency={data.currency} />
+          <DurationCalculator
+            roles={data.roles}
+            lines={lines}
+            currency={data.currency}
+            onSetupChange={keepSetup}
+          />
         )}
       </section>
     </main>

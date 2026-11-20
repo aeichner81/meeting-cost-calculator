@@ -13,10 +13,23 @@ import { RecurrenceSelect } from './RecurrenceSelect'
 import styles from './MeetingBuilder.module.css'
 import results from './Results.module.css'
 
+// What the user has entered for the meeting, as typed. Not validated: Save checks it (spec 002).
+export interface MeetingSetup {
+  hours: string
+  minutes: string
+  recurrence: Recurrence
+}
+
 interface DurationCalculatorProps {
   roles: Role[]
   lines: MeetingLine[]
   currency: CurrencyCode
+  // Starting values, read only on mount. To load a meeting, remount with a new `key`.
+  initialHours?: string
+  initialMinutes?: string
+  initialRecurrence?: Recurrence
+  // Called after each change to hours, minutes or recurrence; not called on mount.
+  onSetupChange?: (setup: MeetingSetup) => void
 }
 
 interface StatusMessage {
@@ -33,19 +46,27 @@ function joinIds(...ids: Array<string | undefined | false | ''>): string | undef
   return present.length > 0 ? present.join(' ') : undefined
 }
 
-export function DurationCalculator({ roles, lines, currency }: DurationCalculatorProps) {
+export function DurationCalculator({
+  roles,
+  lines,
+  currency,
+  initialHours = '',
+  initialMinutes = '',
+  initialRecurrence = 'once',
+  onSetupChange,
+}: DurationCalculatorProps) {
   const idPrefix = useId()
   const hoursId = `${idPrefix}-hours`
   const minutesId = `${idPrefix}-minutes`
   const hoursErrorId = `${hoursId}-error`
   const durationErrorId = `${hoursId}-duration-error`
   const minutesErrorId = `${minutesId}-error`
-  const [hours, setHours] = useState('')
-  const [minutes, setMinutes] = useState('')
+  const [hours, setHours] = useState(initialHours)
+  const [minutes, setMinutes] = useState(initialMinutes)
   const [errors, setErrors] = useState<MeetingErrors>({})
   // The duration that was last calculated; the total is derived from it so it follows later changes.
   const [duration, setDuration] = useState<Duration | undefined>()
-  const [recurrence, setRecurrence] = useState<Recurrence>('once')
+  const [recurrence, setRecurrence] = useState<Recurrence>(initialRecurrence)
   // True when Calculate was pressed on a meeting with no lines (AC-26), whatever the duration. A
   // meeting that is emptied later (for example by deleting a role) just clears its figures instead
   // of showing this message.
@@ -58,6 +79,21 @@ export function DurationCalculator({ roles, lines, currency }: DurationCalculato
   }
 
   const hasErrors = Object.keys(errors).length > 0
+
+  function changeHours(value: string) {
+    setHours(value)
+    onSetupChange?.({ hours: value, minutes, recurrence })
+  }
+
+  function changeMinutes(value: string) {
+    setMinutes(value)
+    onSetupChange?.({ hours, minutes: value, recurrence })
+  }
+
+  function changeRecurrence(value: Recurrence) {
+    setRecurrence(value)
+    onSetupChange?.({ hours, minutes, recurrence: value })
+  }
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -116,7 +152,7 @@ export function DurationCalculator({ roles, lines, currency }: DurationCalculato
             type="text"
             inputMode="numeric"
             value={hours}
-            onChange={(event) => setHours(event.target.value)}
+            onChange={(event) => changeHours(event.target.value)}
             aria-invalid={errors.hours || errors.duration ? true : undefined}
             aria-describedby={joinIds(errors.hours && hoursErrorId, errors.duration && durationErrorId)}
           />
@@ -138,7 +174,7 @@ export function DurationCalculator({ roles, lines, currency }: DurationCalculato
             type="text"
             inputMode="numeric"
             value={minutes}
-            onChange={(event) => setMinutes(event.target.value)}
+            onChange={(event) => changeMinutes(event.target.value)}
             aria-invalid={errors.minutes ? true : undefined}
             aria-describedby={errors.minutes ? minutesErrorId : undefined}
           />
@@ -148,7 +184,7 @@ export function DurationCalculator({ roles, lines, currency }: DurationCalculato
             </p>
           )}
         </div>
-        <RecurrenceSelect value={recurrence} onChange={setRecurrence} />
+        <RecurrenceSelect value={recurrence} onChange={changeRecurrence} />
         <button type="submit">Calculate</button>
       </form>
       {/* One results block (UX-2). The live region stays mounted so changes are announced (A11Y-6). */}

@@ -193,6 +193,23 @@ describe('duration and calculate (AC-5, AC-6, AC-21)', () => {
 
     expect(screen.getByText('Total cost: £120.00')).toBeInTheDocument()
   })
+
+  // Task 24 lifts the setup into App; this pins the existing behaviour so it stays unchanged.
+  it('starts with empty duration fields and "Once" after the last role is deleted and a role is added again', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await addRole(user, 'Developer', '36400')
+    await user.type(screen.getByLabelText('Hours'), '2')
+    await user.type(screen.getByLabelText('Minutes'), '15')
+    await user.selectOptions(screen.getByLabelText('Recurrence'), 'weekly')
+
+    await user.click(screen.getByRole('button', { name: 'Delete Developer' }))
+    await addRole(user, 'Manager', '72800')
+
+    expect(screen.getByLabelText('Hours')).toHaveValue('')
+    expect(screen.getByLabelText('Minutes')).toHaveValue('')
+    expect(screen.getByLabelText('Recurrence')).toHaveValue('once')
+  })
 })
 
 describe('deleting a role used in the meeting (AC-25, A11Y-6)', () => {
