@@ -11,6 +11,7 @@ import { MeetingBuilder } from './components/MeetingBuilder'
 import { RoleForm } from './components/RoleForm'
 import { RolesPanel } from './components/RolesPanel'
 import { SavedMeetings } from './components/SavedMeetings'
+import type { LoadedMeeting } from './components/SavedMeetings'
 import { usePersistedState } from './hooks/usePersistedState'
 import { useSavedMeetings } from './hooks/useSavedMeetings'
 import styles from './App.module.css'
@@ -30,6 +31,10 @@ export function App() {
   // (spec 002, AC-27). A ref, because nothing on screen depends on it and Save reads it in its
   // click handler. Starts at the calculator's defaults; in memory only (AC-24).
   const setupRef = useRef<MeetingSetup>(EMPTY_SETUP)
+  // The calculator's starting values. Loading a meeting sets them and changes the key, so the
+  // calculator remounts with the loaded duration and recurrence and no shown cost (AC-31).
+  const [initialSetup, setInitialSetup] = useState<MeetingSetup>(EMPTY_SETUP)
+  const [calculatorKey, setCalculatorKey] = useState(0)
 
   function addRole(name: string, annualSalary: number) {
     const role = { id: crypto.randomUUID(), name, annualSalary }
@@ -62,6 +67,7 @@ export function App() {
     const remaining = data.roles.filter((role) => role.id !== deletedId)
     if (remaining.length === 0) {
       keepSetup(EMPTY_SETUP)
+      setInitialSetup(EMPTY_SETUP)
     }
   }
 
@@ -72,6 +78,22 @@ export function App() {
   // The component has already asked before replacing a matching name (AC-30).
   function saveMeeting(meeting: SavedMeeting) {
     setMeetings((previous) => upsertMeeting(previous, meeting))
+  }
+
+  // The component has already asked before replacing a meeting with lines (AC-34) and left out
+  // lines for deleted roles (AC-33).
+  function loadMeeting(loaded: LoadedMeeting) {
+    const setup: MeetingSetup = {
+      hours: String(loaded.duration.hours),
+      minutes: String(loaded.duration.minutes),
+      recurrence: loaded.recurrence,
+    }
+    setMeetingNotice('')
+    setLines(loaded.lines)
+    keepSetup(setup)
+    setInitialSetup(setup)
+    setCalculatorKey((previous) => previous + 1)
+    changeCurrency(loaded.currency)
   }
 
   function changeCurrency(currency: CurrencyCode) {
@@ -121,6 +143,10 @@ export function App() {
         <MeetingBuilder roles={data.roles} lines={lines} onAddLine={addLine} />
         {data.roles.length > 0 && (
           <DurationCalculator
+            key={calculatorKey}
+            initialHours={initialSetup.hours}
+            initialMinutes={initialSetup.minutes}
+            initialRecurrence={initialSetup.recurrence}
             roles={data.roles}
             lines={lines}
             currency={data.currency}
@@ -137,6 +163,7 @@ export function App() {
           currency={data.currency}
           readSetup={readSetup}
           onSave={saveMeeting}
+          onLoad={loadMeeting}
         />
       </section>
     </main>

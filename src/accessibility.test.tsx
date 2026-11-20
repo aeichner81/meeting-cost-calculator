@@ -37,6 +37,19 @@ describe('labels (A11Y-1)', () => {
   })
 
   it('uses every label the spec names', async () => {
+    // A saved meeting, so the saved-meeting select is shown (AC-35).
+    localStorage.setItem(
+      'mcc:meetings:v1',
+      JSON.stringify([
+        {
+          name: 'Weekly sync',
+          lines: [{ roleId: 'a', roleName: 'Developer', headcount: 1 }],
+          duration: { hours: 1, minutes: 0 },
+          recurrence: 'weekly',
+          currency: 'GBP',
+        },
+      ]),
+    )
     const user = userEvent.setup()
     render(<App />)
     await addRole(user, 'Developer', '36400')
@@ -50,6 +63,7 @@ describe('labels (A11Y-1)', () => {
       'Recurrence',
       'Currency',
       'Meeting name',
+      'Saved meeting',
     ]) {
       expect(screen.getByLabelText(name)).toBeInTheDocument()
     }

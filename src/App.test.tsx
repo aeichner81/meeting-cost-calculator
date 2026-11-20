@@ -660,3 +660,193 @@ describe('saving a meeting (AC-27, AC-28, AC-29, AC-30)', () => {
     expect(meetings[0]).toMatchObject({ name: 'Weekly sync', duration: { hours: 1, minutes: 0 } })
   })
 })
+
+describe('loading a saved meeting (AC-31, AC-32, AC-33, AC-34, AC-35)', () => {
+  // The AC-6 meeting, saved in US dollars: 3 of role A and 1 of role B for 2 hours, weekly.
+  const AC6_MEETING = {
+    name: 'Weekly sync',
+    lines: [
+      { roleId: 'a', roleName: 'Developer', headcount: 3 },
+      { roleId: 'b', roleName: 'Manager', headcount: 1 },
+    ],
+    duration: { hours: 2, minutes: 0 },
+    recurrence: 'weekly',
+    currency: 'USD',
+  }
+
+  function seed(roles: Array<{ id: string; name: string; annualSalary: number }>, meetings: unknown[]) {
+    localStorage.setItem('mcc:v1', JSON.stringify({ roles, currency: 'GBP' }))
+    localStorage.setItem('mcc:meetings:v1', JSON.stringify(meetings))
+  }
+
+  const AC6_ROLES = [
+    { id: 'a', name: 'Developer', annualSalary: 36400 },
+    { id: 'b', name: 'Manager', annualSalary: 72800 },
+  ]
+
+  function meetingLineTexts() {
+    const list = screen.getByRole('list', { name: 'Meeting lines' })
+    return within(list)
+      .getAllByRole('listitem')
+      .map((item) => item.textContent)
+  }
+
+  function savedNotice() {
+    return screen.getByRole('status', { name: 'Saved meetings notice' })
+  }
+
+  async function addToMeeting(
+    user: ReturnType<typeof userEvent.setup>,
+    role: string,
+    headcount: string,
+  ) {
+    await user.selectOptions(screen.getByLabelText('Role'), role)
+    await user.clear(screen.getByLabelText('Headcount'))
+    await user.type(screen.getByLabelText('Headcount'), headcount)
+    await user.click(screen.getByRole('button', { name: 'Add to meeting' }))
+  }
+
+  // A different working meeting with a shown cost: 1 Developer for 1 hour, £20.00.
+  async function buildAndCalculate(user: ReturnType<typeof userEvent.setup>) {
+    await addToMeeting(user, 'Developer', '1')
+    await user.type(screen.getByLabelText('Hours'), '1')
+    await user.click(screen.getByRole('button', { name: 'Calculate' }))
+    expect(screen.getByText('Total cost: £20.00')).toBeInTheDocument()
+  }
+
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  it('says there are no saved meetings yet and offers no Load (AC-35)', () => {
+    render(<App />)
+    expect(screen.getByText('No saved meetings yet.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Load' })).not.toBeInTheDocument()
+  })
+
+  it('replaces lines, duration and recurrence, switches the currency and clears the cost (AC-31)', async () => {
+    seed(AC6_ROLES, [AC6_MEETING])
+    const user = userEvent.setup()
+    render(<App />)
+    await buildAndCalculate(user)
+
+    await user.click(screen.getByRole('button', { name: 'Load' }))
+    await user.click(screen.getByRole('button', { name: 'Load and replace' }))
+
+    expect(meetingLineTexts()).toEqual(['Developer 3', 'Manager 1'])
+    expect(screen.getByLabelText('Hours')).toHaveValue('2')
+    expect(screen.getByLabelText('Minutes')).toHaveValue('0')
+    expect(screen.getByLabelText('Recurrence')).toHaveValue('weekly')
+    expect(screen.getByLabelText('Currency')).toHaveValue('USD')
+    expect(JSON.parse(localStorage.getItem('mcc:v1') ?? '{}').currency).toBe('USD')
+    expect(screen.queryByText(/Total cost/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Yearly cost/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+  })
+
+  it('calculates the loaded AC-6 meeting as before when salaries are unchanged', async () => {
+    seed(AC6_ROLES, [AC6_MEETING])
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(screen.getByRole('button', { name: 'Load' }))
+    await user.click(screen.getByRole('button', { name: 'Calculate' }))
+
+    expect(screen.getByText('Total cost: US$200.00')).toBeInTheDocument()
+  })
+
+  it('uses current salaries: £320.00 after role A goes from £36,400 to £72,800 (AC-32)', async () => {
+    // Saved in pounds with role A at £36,400; role A's salary has since changed to £72,800.
+    seed(
+      [
+        { id: 'a', name: 'Developer', annualSalary: 72800 },
+        { id: 'b', name: 'Manager', annualSalary: 72800 },
+      ],
+      [{ ...AC6_MEETING, currency: 'GBP' }],
+    )
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(screen.getByRole('button', { name: 'Load' }))
+    await user.click(screen.getByRole('button', { name: 'Calculate' }))
+
+    expect(screen.getByText('Total cost: £320.00')).toBeInTheDocument()
+  })
+
+  it('leaves out lines for deleted roles, says so and keeps the saved meeting (AC-33)', async () => {
+    const withDeleted = {
+      ...AC6_MEETING,
+      lines: [...AC6_MEETING.lines, { roleId: 'gone', roleName: 'Designer', headcount: 2 }],
+    }
+    seed(AC6_ROLES, [withDeleted])
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(screen.getByRole('button', { name: 'Load' }))
+
+    expect(meetingLineTexts()).toEqual(['Developer 3', 'Manager 1'])
+    expect(savedNotice()).toHaveTextContent(
+      'The Designer line was left out because that role has been deleted.',
+    )
+    expect(JSON.parse(localStorage.getItem('mcc:meetings:v1') ?? '[]')).toEqual([withDeleted])
+  })
+
+  it('shows the add-attendees message on Calculate when no lines remain after loading (AC-33, AC-26)', async () => {
+    seed(AC6_ROLES, [
+      { ...AC6_MEETING, lines: [{ roleId: 'gone', roleName: 'Designer', headcount: 2 }] },
+    ])
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(screen.getByRole('button', { name: 'Load' }))
+    await user.click(screen.getByRole('button', { name: 'Calculate' }))
+
+    expect(screen.getByText('Add attendees to the meeting first.')).toBeInTheDocument()
+    expect(screen.queryByText(/Total cost/)).not.toBeInTheDocument()
+  })
+
+  it('leaves the meeting, currency and cost alone when loading is cancelled (AC-34)', async () => {
+    seed(AC6_ROLES, [AC6_MEETING])
+    const user = userEvent.setup()
+    render(<App />)
+    await buildAndCalculate(user)
+
+    await user.click(screen.getByRole('button', { name: 'Load' }))
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    expect(meetingLineTexts()).toEqual(['Developer 1'])
+    expect(screen.getByLabelText('Hours')).toHaveValue('1')
+    expect(screen.getByLabelText('Currency')).toHaveValue('GBP')
+    expect(screen.getByText('Total cost: £20.00')).toBeInTheDocument()
+  })
+
+  it('saves the loaded duration and recurrence when the loaded meeting is saved again (AC-27, AC-31)', async () => {
+    seed(AC6_ROLES, [AC6_MEETING])
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(screen.getByRole('button', { name: 'Load' }))
+    await user.type(screen.getByLabelText('Meeting name'), 'Copy')
+    await user.click(screen.getByRole('button', { name: 'Save meeting' }))
+
+    const copy = JSON.parse(localStorage.getItem('mcc:meetings:v1') ?? '[]').find(
+      (meeting: { name: string }) => meeting.name === 'Copy',
+    )
+    expect(copy).toMatchObject({
+      duration: { hours: 2, minutes: 0 },
+      recurrence: 'weekly',
+      currency: 'USD',
+    })
+  })
+
+  it('starts with empty duration fields after loading, deleting every role and adding one again', async () => {
+    seed(AC6_ROLES, [AC6_MEETING])
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(screen.getByRole('button', { name: 'Load' }))
+    await user.click(screen.getByRole('button', { name: 'Delete Developer' }))
+    await user.click(screen.getByRole('button', { name: 'Delete Manager' }))
+    await user.type(screen.getByLabelText('Role name'), 'Tester')
+    await user.type(screen.getByLabelText('Annual salary'), '36400')
+    await user.click(screen.getByRole('button', { name: 'Add role' }))
+
+    expect(screen.getByLabelText('Hours')).toHaveValue('')
+    expect(screen.getByLabelText('Minutes')).toHaveValue('')
+    expect(screen.getByLabelText('Recurrence')).toHaveValue('once')
+  })
+})

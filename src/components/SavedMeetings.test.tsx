@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { CurrencyCode } from '../domain/currency'
 import type { SavedMeeting } from '../domain/savedMeetings'
@@ -35,6 +35,7 @@ interface SetupOptions {
 
 function renderSaved(options: SetupOptions = {}) {
   const onSave = vi.fn()
+  const onLoad = vi.fn()
   const setup = options.setup ?? VALID_SETUP
   render(
     <SavedMeetings
@@ -44,9 +45,10 @@ function renderSaved(options: SetupOptions = {}) {
       currency={options.currency ?? 'USD'}
       readSetup={() => setup}
       onSave={onSave}
+      onLoad={onLoad}
     />,
   )
-  return { onSave, user: userEvent.setup() }
+  return { onSave, onLoad, user: userEvent.setup() }
 }
 
 function notice() {
@@ -257,5 +259,167 @@ describe('replacing a saved meeting (AC-30, A11Y-6)', () => {
 
     expect(screen.queryByRole('button', { name: 'Replace' })).not.toBeInTheDocument()
     expect(onSave).toHaveBeenCalledTimes(1)
+  })
+})
+
+const MONTHLY_REVIEW: SavedMeeting = {
+  name: 'Monthly review',
+  lines: [
+    { roleId: 'a', roleName: 'Developer', headcount: 3 },
+    { roleId: 'b', roleName: 'Manager', headcount: 1 },
+  ],
+  duration: { hours: 2, minutes: 0 },
+  recurrence: 'monthly',
+  currency: 'EUR',
+}
+
+// Sorted A to Z, as the app passes them (AC-37).
+const TWO_MEETINGS = [MONTHLY_REVIEW, WEEKLY_SYNC]
+
+describe('saved meetings list (AC-35, A11Y-1)', () => {
+  it('says there are no saved meetings yet and offers no load or delete action', () => {
+    renderSaved({ meetings: [] })
+
+    expect(screen.getByText('No saved meetings yet.')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Saved meeting')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Load' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /delete/i })).not.toBeInTheDocument()
+  })
+
+  it('lists the saved meetings in a labelled select, in the order given, with a Load button', () => {
+    renderSaved({ meetings: TWO_MEETINGS })
+
+    const select = screen.getByLabelText('Saved meeting')
+    const options = within(select)
+      .getAllByRole('option')
+      .map((option) => option.textContent)
+    expect(options).toEqual(['Monthly review', 'Weekly sync'])
+    expect(screen.getByRole('button', { name: 'Load' })).toBeInTheDocument()
+    expect(screen.queryByText('No saved meetings yet.')).not.toBeInTheDocument()
+  })
+})
+
+describe('loading a saved meeting (AC-31, A11Y-6)', () => {
+  it('loads the chosen meeting straight away when the working meeting has no lines', async () => {
+    const { onLoad, user } = renderSaved({ meetings: TWO_MEETINGS, lines: [] })
+    await user.selectOptions(screen.getByLabelText('Saved meeting'), 'Weekly sync')
+    await user.click(screen.getByRole('button', { name: 'Load' }))
+
+    expect(onLoad).toHaveBeenCalledTimes(1)
+    expect(onLoad).toHaveBeenCalledWith({
+      lines: [{ roleId: 'a', headcount: 1 }],
+      duration: { hours: 0, minutes: 30 },
+      recurrence: 'weekly',
+      currency: 'GBP',
+    })
+  })
+
+  it('loads the first meeting in the list by default', async () => {
+    const { onLoad, user } = renderSaved({ meetings: TWO_MEETINGS, lines: [] })
+    await user.click(screen.getByRole('button', { name: 'Load' }))
+
+    expect(onLoad).toHaveBeenCalledWith({
+      lines: [
+        { roleId: 'a', headcount: 3 },
+        { roleId: 'b', headcount: 1 },
+      ],
+      duration: { hours: 2, minutes: 0 },
+      recurrence: 'monthly',
+      currency: 'EUR',
+    })
+  })
+
+  it('announces the load through a live region that was already there', async () => {
+    const { user } = renderSaved({ meetings: TWO_MEETINGS, lines: [] })
+    const region = notice()
+    await user.click(screen.getByRole('button', { name: 'Load' }))
+
+    expect(region).toHaveTextContent('Loaded meeting "Monthly review".')
+  })
+})
+
+describe('lines for deleted roles (AC-33, A11Y-6)', () => {
+  const WITH_DELETED_ROLE: SavedMeeting = {
+    name: 'Design review',
+    lines: [
+      { roleId: 'a', roleName: 'Developer', headcount: 2 },
+      { roleId: 'gone', roleName: 'Designer', headcount: 1 },
+    ],
+    duration: { hours: 1, minutes: 0 },
+    recurrence: 'once',
+    currency: 'GBP',
+  }
+
+  it('leaves out the line, says which role it was for and keeps the saved meeting unchanged', async () => {
+    const saved = structuredClone(WITH_DELETED_ROLE)
+    const { onLoad, user } = renderSaved({ meetings: [saved], lines: [] })
+    const region = notice()
+    await user.click(screen.getByRole('button', { name: 'Load' }))
+
+    expect(onLoad.mock.calls[0][0].lines).toEqual([{ roleId: 'a', headcount: 2 }])
+    expect(region).toHaveTextContent(
+      'The Designer line was left out because that role has been deleted.',
+    )
+    expect(saved).toEqual(WITH_DELETED_ROLE)
+  })
+
+  it('loads a meeting with no lines when every role in it has been deleted', async () => {
+    const onlyDeleted: SavedMeeting = {
+      ...WITH_DELETED_ROLE,
+      lines: [{ roleId: 'gone', roleName: 'Designer', headcount: 1 }],
+    }
+    const { onLoad, user } = renderSaved({ meetings: [onlyDeleted], lines: [] })
+    await user.click(screen.getByRole('button', { name: 'Load' }))
+
+    expect(onLoad.mock.calls[0][0].lines).toEqual([])
+  })
+})
+
+describe('loading over a meeting with lines (AC-34, A11Y-2, A11Y-6)', () => {
+  it('asks before replacing the current meeting and moves focus to the confirm button', async () => {
+    const { onLoad, user } = renderSaved({ meetings: TWO_MEETINGS })
+    const region = notice()
+    await user.selectOptions(screen.getByLabelText('Saved meeting'), 'Weekly sync')
+    await user.click(screen.getByRole('button', { name: 'Load' }))
+
+    expect(onLoad).not.toHaveBeenCalled()
+    expect(region).toHaveTextContent(
+      'Loading "Weekly sync" replaces the current meeting. Load it anyway?',
+    )
+    expect(screen.getByRole('button', { name: 'Load and replace' })).toHaveFocus()
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+  })
+
+  it('loads when confirmed and returns focus to Load', async () => {
+    const { onLoad, user } = renderSaved({ meetings: TWO_MEETINGS })
+    await user.selectOptions(screen.getByLabelText('Saved meeting'), 'Weekly sync')
+    await user.click(screen.getByRole('button', { name: 'Load' }))
+    await user.click(screen.getByRole('button', { name: 'Load and replace' }))
+
+    expect(onLoad).toHaveBeenCalledTimes(1)
+    expect(onLoad.mock.calls[0][0]).toMatchObject({ currency: 'GBP', recurrence: 'weekly' })
+    expect(screen.queryByRole('button', { name: 'Load and replace' })).not.toBeInTheDocument()
+    expect(notice()).toHaveTextContent('Loaded meeting "Weekly sync".')
+    expect(screen.getByRole('button', { name: 'Load' })).toHaveFocus()
+  })
+
+  it('loads nothing when cancelled and returns focus to Load', async () => {
+    const { onLoad, user } = renderSaved({ meetings: TWO_MEETINGS })
+    await user.click(screen.getByRole('button', { name: 'Load' }))
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    expect(onLoad).not.toHaveBeenCalled()
+    expect(screen.queryByRole('button', { name: 'Load and replace' })).not.toBeInTheDocument()
+    expect(notice()).not.toHaveTextContent('Load it anyway?')
+    expect(screen.getByRole('button', { name: 'Load' })).toHaveFocus()
+  })
+
+  it('can be confirmed with the keyboard alone (A11Y-2)', async () => {
+    const { onLoad, user } = renderSaved({ meetings: TWO_MEETINGS })
+    screen.getByRole('button', { name: 'Load' }).focus()
+    await user.keyboard('{Enter}')
+    await user.keyboard('{Enter}')
+
+    expect(onLoad).toHaveBeenCalledTimes(1)
   })
 })

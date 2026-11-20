@@ -1,14 +1,24 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import type { FormEvent } from 'react'
+import type { FormEvent, RefObject } from 'react'
 import type { CurrencyCode } from '../domain/currency'
-import { findMeetingByName, normaliseName } from '../domain/savedMeetings'
+import type { Recurrence } from '../domain/recurrence'
+import { findMeetingByName, normaliseName, resolveLines } from '../domain/savedMeetings'
 import type { SavedLine, SavedMeeting } from '../domain/savedMeetings'
-import type { MeetingLine, Role } from '../domain/types'
+import type { Duration, MeetingLine, Role } from '../domain/types'
 import { validateDuration } from '../domain/validation'
 import { NO_LINES_MESSAGE } from './DurationCalculator'
 import type { MeetingSetup } from './DurationCalculator'
 // Shares the form grid and error style until the section gets its own stylesheet (task 29).
 import styles from './MeetingBuilder.module.css'
+
+// What the working meeting becomes when a saved meeting is loaded (AC-31). Lines for deleted
+// roles are already left out (AC-33).
+export interface LoadedMeeting {
+  lines: MeetingLine[]
+  duration: Duration
+  recurrence: Recurrence
+  currency: CurrencyCode
+}
 
 interface SavedMeetingsProps {
   meetings: SavedMeeting[]
@@ -18,15 +28,16 @@ interface SavedMeetingsProps {
   // Read when Save is pressed, so the latest duration and recurrence are saved.
   readSetup: () => MeetingSetup
   onSave: (meeting: SavedMeeting) => void
+  onLoad: (meeting: LoadedMeeting) => void
 }
 
 type MeetingCheck = { ok: true; meeting: SavedMeeting } | { ok: false; messages: string[] }
 
-// A replace waiting for the user's answer (AC-30).
-interface PendingReplace {
-  meeting: SavedMeeting
-  existingName: string
-}
+// A question waiting for the user's answer: replace a saved meeting with the same name (AC-30),
+// or replace a working meeting that has lines with a loaded one (AC-34).
+type Pending =
+  | { kind: 'replace'; meeting: SavedMeeting; existingName: string }
+  | { kind: 'load'; meeting: SavedMeeting }
 
 const NAME_ERROR = 'Enter a meeting name.'
 
@@ -57,22 +68,39 @@ function checkMeeting(name: string, props: SavedMeetingsProps): MeetingCheck {
   return { ok: true, meeting }
 }
 
+function droppedLineMessage(roleName: string): string {
+  return `The ${roleName} line was left out because that role has been deleted.`
+}
+
+function question(pending: Pending): string {
+  if (pending.kind === 'replace') {
+    return `A saved meeting named "${pending.existingName}" already exists. Replace it?`
+  }
+  return `Loading "${pending.meeting.name}" replaces the current meeting. Load it anyway?`
+}
+
 export function SavedMeetings(props: SavedMeetingsProps) {
-  const { meetings, onSave } = props
+  const { meetings, roles, lines, onSave, onLoad } = props
   const idPrefix = useId()
   const nameId = `${idPrefix}-name`
   const nameErrorId = `${nameId}-error`
+  const savedMeetingId = `${idPrefix}-saved-meeting`
   const [name, setName] = useState('')
   const [nameError, setNameError] = useState('')
   const [messages, setMessages] = useState<string[]>([])
-  const [pending, setPending] = useState<PendingReplace | undefined>()
+  const [pending, setPending] = useState<Pending | undefined>()
+  const [chosenName, setChosenName] = useState('')
   const saveButton = useRef<HTMLButtonElement>(null)
-  const replaceButton = useRef<HTMLButtonElement>(null)
+  const loadButton = useRef<HTMLButtonElement>(null)
+  const confirmButton = useRef<HTMLButtonElement>(null)
+
+  // Falls back to the first meeting until one is chosen, or if the chosen one is gone.
+  const chosen = findMeetingByName(meetings, chosenName) ?? meetings[0]
 
   // Focus moves into the confirmation when it opens (A11Y-2).
   useEffect(() => {
     if (pending) {
-      replaceButton.current?.focus()
+      confirmButton.current?.focus()
     }
   }, [pending])
 
@@ -82,7 +110,22 @@ export function SavedMeetings(props: SavedMeetingsProps) {
     setName('')
   }
 
-  function handleSubmit(event: FormEvent) {
+  // Saved salaries are never used: lines refer to the current roles (AC-32).
+  function load(meeting: SavedMeeting) {
+    const resolved = resolveLines(meeting, roles)
+    onLoad({
+      lines: resolved.lines,
+      duration: meeting.duration,
+      recurrence: meeting.recurrence,
+      currency: meeting.currency,
+    })
+    setMessages([
+      `Loaded meeting "${meeting.name}".`,
+      ...resolved.droppedRoleNames.map(droppedLineMessage),
+    ])
+  }
+
+  function handleSave(event: FormEvent) {
     event.preventDefault()
     const trimmed = normaliseName(name)
     setNameError(trimmed === '' ? NAME_ERROR : '')
@@ -94,27 +137,52 @@ export function SavedMeetings(props: SavedMeetingsProps) {
 
     const existing = findMeetingByName(meetings, trimmed)
     if (existing) {
-      setPending({ meeting: check.meeting, existingName: existing.name })
+      setPending({ kind: 'replace', meeting: check.meeting, existingName: existing.name })
       return
     }
     save(check.meeting)
   }
 
-  function closeConfirmation() {
-    setPending(undefined)
-    saveButton.current?.focus()
+  // Asks first when the working meeting has lines that loading would replace (AC-34).
+  function handleLoad(event: FormEvent) {
+    event.preventDefault()
+    if (!chosen) {
+      return
+    }
+    if (lines.length > 0) {
+      setMessages([])
+      setPending({ kind: 'load', meeting: chosen })
+      return
+    }
+    load(chosen)
   }
 
-  function confirmReplace() {
-    if (pending) {
+  // Focus goes back to the button that opened the question (A11Y-7).
+  function returnFocusFor(closed: Pending): RefObject<HTMLButtonElement | null> {
+    return closed.kind === 'replace' ? saveButton : loadButton
+  }
+
+  function closeConfirmation() {
+    if (!pending) {
+      return
+    }
+    setPending(undefined)
+    returnFocusFor(pending).current?.focus()
+  }
+
+  function confirm() {
+    if (pending?.kind === 'replace') {
       save(pending.meeting)
+    }
+    if (pending?.kind === 'load') {
+      load(pending.meeting)
     }
     closeConfirmation()
   }
 
   return (
     <>
-      <form className={styles.form} onSubmit={handleSubmit} aria-label="Save meeting" noValidate>
+      <form className={styles.form} onSubmit={handleSave} aria-label="Save meeting" noValidate>
         <div className={styles.field}>
           <label htmlFor={nameId}>Meeting name</label>
           <input
@@ -137,18 +205,42 @@ export function SavedMeetings(props: SavedMeetingsProps) {
           Save meeting
         </button>
       </form>
-      {/* Stays mounted so outcomes, problems and the replace question are announced (A11Y-6). */}
+      {chosen ? (
+        <form className={styles.form} onSubmit={handleLoad} aria-label="Load meeting">
+          <div className={styles.field}>
+            <label htmlFor={savedMeetingId}>Saved meeting</label>
+            <select
+              id={savedMeetingId}
+              value={chosen.name}
+              onChange={(event) => setChosenName(event.target.value)}
+            >
+              {meetings.map((meeting) => (
+                <option key={meeting.name} value={meeting.name}>
+                  {meeting.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button type="submit" ref={loadButton}>
+            Load
+          </button>
+        </form>
+      ) : (
+        // No load or delete action until something is saved (AC-35).
+        <p>No saved meetings yet.</p>
+      )}
+      {/* Stays mounted so outcomes, problems and questions are announced (A11Y-6). */}
       <div role="status" aria-live="polite" aria-label="Saved meetings notice">
         {pending ? (
-          <p>A saved meeting named "{pending.existingName}" already exists. Replace it?</p>
+          <p>{question(pending)}</p>
         ) : (
-          messages.map((message) => <p key={message}>{message}</p>)
+          messages.map((message, index) => <p key={index}>{message}</p>)
         )}
       </div>
       {pending && (
         <div>
-          <button type="button" ref={replaceButton} onClick={confirmReplace}>
-            Replace
+          <button type="button" ref={confirmButton} onClick={confirm}>
+            {pending.kind === 'replace' ? 'Replace' : 'Load and replace'}
           </button>
           <button type="button" onClick={closeConfirmation}>
             Cancel
