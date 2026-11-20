@@ -31,16 +31,16 @@ Acceptance criteria from `specs/001-meeting-cost-calculator.md` (AC-1 to AC-26) 
 | AC-25 | US-2 | Deleting a role removes its meeting line, updates or clears a shown cost, and says so | 18 | `src/App.test.tsx` (line removed, cost recalculated without it, cleared when no lines remain, notice in a live region, no notice if the role was not in the meeting) | `src/App.tsx`, `src/components/DurationCalculator.tsx` |
 | AC-26 | US-2 | Calculate with no meeting lines shows an "add attendees first" message and no cost | 19 | `src/components/DurationCalculator.test.tsx` (message in the live region with a valid and an invalid duration, no total, table, monthly or yearly figures, earlier figures removed, message not stale after lines are added or removed) | `src/components/DurationCalculator.tsx` |
 | AC-27 | US-9 | Save a meeting with lines and a valid duration under a name; saved copy holds lines, duration, recurrence and currency | 24, 25 | pending | pending |
-| AC-28 | US-9 | Empty or spaces-only name shows an error next to the field, nothing saved; saved names are trimmed | 22, 25 | pending | pending |
+| AC-28 | US-9 | Empty or spaces-only name shows an error next to the field, nothing saved; saved names are trimmed | 22, 25 | `src/domain/savedMeetings.test.ts` (names trimmed, spaces-only name becomes empty; name error still pending in task 25) | `src/domain/savedMeetings.ts` |
 | AC-29 | US-9 | Saving with no lines or an invalid duration shows the AC-26 or AC-9 message, nothing saved | 25 | pending | pending |
-| AC-30 | US-9 | Same name ignoring case and spaces asks to replace; confirm replaces, cancel changes nothing | 22, 25 | pending | pending |
+| AC-30 | US-9 | Same name ignoring case and spaces asks to replace; confirm replaces, cancel changes nothing | 22, 25 | `src/domain/savedMeetings.test.ts` (names match ignoring case and spaces, a matching meeting is replaced; confirmation still pending in task 25) | `src/domain/savedMeetings.ts` |
 | AC-31 | US-10 | Loading replaces lines, duration and recurrence, switches currency and clears any shown cost | 24, 26 | pending | pending |
-| AC-32 | US-10 | Loading uses current salaries: AC-6 meeting after A's salary becomes £72,800 costs £320.00 | 22, 26 | pending | pending |
-| AC-33 | US-10 | Lines for deleted roles are left out on load with an announced notice; saved meeting unchanged | 22, 26 | pending | pending |
+| AC-32 | US-10 | Loading uses current salaries: AC-6 meeting after A's salary becomes £72,800 costs £320.00 | 22, 26 | `src/domain/savedMeetings.test.ts` (resolved lines with current salaries cost £320.00; loading still pending in task 26) | `src/domain/savedMeetings.ts` |
+| AC-33 | US-10 | Lines for deleted roles are left out on load with an announced notice; saved meeting unchanged | 22, 26 | `src/domain/savedMeetings.test.ts` (lines for deleted roles left out and named, saved meeting unchanged; notice still pending in task 26) | `src/domain/savedMeetings.ts` |
 | AC-34 | US-10 | Loading over a meeting with lines asks to confirm; cancel leaves meeting, currency and cost unchanged | 26 | pending | pending |
 | AC-35 | US-10 | No saved meetings: says so and offers no load or delete | 26 | pending | pending |
-| AC-36 | US-11 | Delete a saved meeting with confirmation; working meeting unchanged either way | 22, 27 | pending | pending |
-| AC-37 | US-9 | Saved meetings survive reopen, sorted by name ignoring case; working meeting still cleared | 22, 23, 28 | pending | pending |
+| AC-36 | US-11 | Delete a saved meeting with confirmation; working meeting unchanged either way | 22, 27 | `src/domain/savedMeetings.test.ts` (removed by name ignoring case and spaces; confirmation still pending in task 27) | `src/domain/savedMeetings.ts` |
+| AC-37 | US-9 | Saved meetings survive reopen, sorted by name ignoring case; working meeting still cleared | 22, 23, 28 | `src/domain/savedMeetings.test.ts` (sorted A to Z ignoring case, also after saving; storage and reload still pending in tasks 23 and 28) | `src/domain/savedMeetings.ts` |
 | AC-38 | US-9 | Saving, loading or deleting sends no meeting data to any server | 23, 28 | pending | pending |
 | AC-39 | US-9 | Saved-meeting storage unavailable, full or unreadable: app works, roles and currency unaffected, user told | 23, 28 | pending | pending |
 | AC-40 | US-10 | Phone-sized screen: save, load and delete without horizontal scrolling | 29 | pending | pending |
