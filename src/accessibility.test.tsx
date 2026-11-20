@@ -6,6 +6,7 @@ import roleFormCss from './components/RoleForm.module.css?raw'
 import meetingBuilderCss from './components/MeetingBuilder.module.css?raw'
 import breakdownCss from './components/CostBreakdown.module.css?raw'
 import appCss from './App.module.css?raw'
+import savedCss from './components/SavedMeetings.module.css?raw'
 
 type User = ReturnType<typeof userEvent.setup>
 
@@ -232,6 +233,53 @@ describe('keyboard (A11Y-2)', () => {
     expect(screen.getByText('Total cost: £40.00')).toBeInTheDocument()
   })
 
+  // A11Y-2, A11Y-7 (spec 002 section 6): save, load and delete, confirmations included.
+  it('saves, loads and deletes a meeting with the keyboard alone', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await addRole(user, 'Developer', '36400')
+    await user.click(screen.getByRole('button', { name: 'Add to meeting' }))
+    await user.click(screen.getByLabelText('Hours'))
+    const notice = () => screen.getByRole('status', { name: 'Saved meetings notice' })
+
+    await user.keyboard('1')
+    await user.tab() // Minutes
+    await user.tab() // Recurrence
+    await user.tab() // Calculate
+    await user.tab()
+    expect(screen.getByLabelText('Meeting name')).toHaveFocus()
+    await user.keyboard('Weekly sync{Enter}')
+    expect(notice()).toHaveTextContent('Saved meeting "Weekly sync".')
+
+    await user.tab()
+    expect(screen.getByRole('button', { name: 'Save meeting' })).toHaveFocus()
+    await user.tab()
+    expect(screen.getByLabelText('Saved meeting')).toHaveFocus()
+    await user.tab()
+    expect(screen.getByRole('button', { name: 'Load' })).toHaveFocus()
+    await user.keyboard('{Enter}')
+    expect(screen.getByRole('button', { name: 'Load and replace' })).toHaveFocus()
+    await user.keyboard('{Enter}')
+    expect(notice()).toHaveTextContent('Loaded meeting "Weekly sync".')
+    expect(screen.getByRole('button', { name: 'Load' })).toHaveFocus()
+
+    await user.tab()
+    expect(screen.getByRole('button', { name: 'Delete saved meeting' })).toHaveFocus()
+    await user.keyboard('{Enter}')
+    expect(screen.getByRole('button', { name: 'Delete' })).toHaveFocus()
+    await user.tab()
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus()
+    await user.keyboard('{Enter}')
+    expect(screen.getByRole('button', { name: 'Delete saved meeting' })).toHaveFocus()
+    expect(screen.getByLabelText('Saved meeting')).toHaveValue('Weekly sync')
+
+    await user.keyboard('{Enter}') // Delete saved meeting
+    await user.keyboard('{Enter}') // Delete
+    expect(notice()).toHaveTextContent('Deleted meeting "Weekly sync".')
+    expect(screen.getByText('No saved meetings yet.')).toBeInTheDocument()
+    expect(screen.getByLabelText('Meeting name')).toHaveFocus()
+  })
+
   it('does not trap focus: Shift+Tab walks back out of the form', async () => {
     const user = userEvent.setup()
     render(<App />)
@@ -251,7 +299,9 @@ describe('keyboard (A11Y-2)', () => {
 })
 
 // Vitest runs with css: false, so focus and contrast are checked from the stylesheet source.
-const allCss = [globalCss, roleFormCss, meetingBuilderCss, breakdownCss, appCss].join('\n')
+const allCss = [globalCss, roleFormCss, meetingBuilderCss, breakdownCss, appCss, savedCss].join(
+  '\n',
+)
 
 describe('visible focus (A11Y-3)', () => {
   it('never removes the browser focus outline', () => {

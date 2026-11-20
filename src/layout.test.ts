@@ -1,6 +1,7 @@
 import globalCss from './index.css?raw'
 import html from '../index.html?raw'
 import breakdownCss from './components/CostBreakdown.module.css?raw'
+import savedCss from './components/SavedMeetings.module.css?raw'
 
 // Vitest runs with css: false, so layout rules cannot be measured in jsdom.
 // These tests read the stylesheet source and assert the rules that deliver the criteria.
@@ -70,5 +71,29 @@ describe('responsive layout', () => {
   // AC-20
   it('stacks form controls on a phone-sized screen', () => {
     expect(globalCss).toMatch(/@media \(max-width: \d+(rem|px)\)/)
+  })
+})
+
+describe('saved meetings on a phone (AC-40)', () => {
+  // AC-40
+  it('lets the meeting name and saved-meeting fields shrink to the screen width', () => {
+    expect(rule(savedCss, '.field')).toMatch(/min-width:\s*0/)
+    expect(rule(savedCss, '.field input')).toMatch(/width:\s*100%/)
+    expect(rule(savedCss, '.field select')).toMatch(/width:\s*100%/)
+  })
+
+  // AC-40
+  it('wraps the confirmation buttons instead of widening the page', () => {
+    expect(rule(savedCss, '.confirmation')).toMatch(/flex-wrap:\s*wrap/)
+  })
+
+  // AC-40
+  it('stacks the save, load and delete controls in one column on a phone', () => {
+    const phone = stripComments(savedCss).match(/@media \(max-width: ([\d.]+)rem\)\s*\{([\s\S]*)\}\s*$/)
+    expect(phone).not.toBeNull()
+    // The same breakpoint as the global stylesheet, where buttons become full width.
+    expect(globalCss).toContain(`@media (max-width: ${phone?.[1]}rem)`)
+    expect(phone?.[2]).toMatch(/\.form\s*\{[^}]*grid-template-columns:\s*1fr/)
+    expect(phone?.[2]).toMatch(/\.confirmation\s*\{[^}]*flex-direction:\s*column/)
   })
 })

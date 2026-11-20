@@ -1,0 +1,75 @@
+/* The saved-meetings section (spec 002). Same grid, field and error style as the other forms (UX-1). */
+.form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.form + .form,
+.form + .empty {
+  margin-top: var(--space-3);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.field input,
+.field select {
+  width: 100%;
+}
+
+/* Buttons line up with the input row, below the label height (one line plus the field gap). */
+.form button {
+  justify-self: start;
+  margin-top: calc(var(--size-small) * 1.5 + var(--space-1));
+}
+
+.error {
+  margin: 0;
+  color: var(--color-error);
+  font-size: var(--size-small);
+}
+
+.error::before {
+  content: 'Error: ';
+  font-weight: bold;
+}
+
+/* AC-35: the empty state is quiet text, not an action. */
+.empty {
+  margin-bottom: 0;
+  color: var(--color-muted);
+}
+
+/* Outcomes and questions (A11Y-6). */
+.status p {
+  margin: var(--space-3) 0 0;
+}
+
+/* Confirm and Cancel sit together under the question (UX-4, A11Y-2). */
+.confirmation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+/* AC-40: on a phone, fields and buttons stack in one column. Matches the index.css breakpoint. */
+@media (max-width: 40rem) {
+  .form {
+    grid-template-columns: 1fr;
+  }
+
+  .form button {
+    margin-top: 0;
+  }
+
+  .confirmation {
+    flex-direction: column;
+  }
+}

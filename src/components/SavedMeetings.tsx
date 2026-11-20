@@ -8,8 +8,7 @@ import type { Duration, MeetingLine, Role } from '../domain/types'
 import { validateDuration } from '../domain/validation'
 import { NO_LINES_MESSAGE } from './DurationCalculator'
 import type { MeetingSetup } from './DurationCalculator'
-// Shares the form grid and error style until the section gets its own stylesheet (task 29).
-import styles from './MeetingBuilder.module.css'
+import styles from './SavedMeetings.module.css'
 
 // What the working meeting becomes when a saved meeting is loaded (AC-31). Lines for deleted
 // roles are already left out (AC-33).
@@ -289,10 +288,15 @@ export function SavedMeetings(props: SavedMeetingsProps) {
         </form>
       ) : (
         // No load or delete action until something is saved (AC-35).
-        <p>No saved meetings yet.</p>
+        <p className={styles.empty}>No saved meetings yet.</p>
       )}
       {/* Stays mounted so outcomes, problems and questions are announced (A11Y-6). */}
-      <div role="status" aria-live="polite" aria-label="Saved meetings notice">
+      <div
+        role="status"
+        aria-live="polite"
+        aria-label="Saved meetings notice"
+        className={styles.status}
+      >
         {pending ? (
           <p>{question(pending)}</p>
         ) : (
@@ -300,7 +304,7 @@ export function SavedMeetings(props: SavedMeetingsProps) {
         )}
       </div>
       {pending && (
-        <div>
+        <div className={styles.confirmation}>
           <button
             type="button"
             className={confirmClassName(pending)}

@@ -5,6 +5,7 @@ import formCss from './components/MeetingBuilder.module.css?raw'
 import roleFormCss from './components/RoleForm.module.css?raw'
 import rolesPanelCss from './components/RolesPanel.module.css?raw'
 import resultsCss from './components/Results.module.css?raw'
+import savedCss from './components/SavedMeetings.module.css?raw'
 import html from '../index.html?raw'
 
 // Vitest runs with css: false, so these tests read the stylesheet source (spec 001 revision 2, UX-1 to UX-6).
@@ -17,6 +18,7 @@ const sheets: Record<string, string> = {
   'RoleForm.module.css': roleFormCss,
   'RolesPanel.module.css': rolesPanelCss,
   'Results.module.css': resultsCss,
+  'SavedMeetings.module.css': savedCss,
 }
 const allCss = Object.values(sheets).join('\n')
 
@@ -120,7 +122,15 @@ describe('design tokens (UX-3)', () => {
 
   // UX-3
   it('uses spacing and size tokens rather than ad hoc lengths in component stylesheets', () => {
-    const components = [appCss, breakdownCss, formCss, roleFormCss, rolesPanelCss, resultsCss]
+    const components = [
+      appCss,
+      breakdownCss,
+      formCss,
+      roleFormCss,
+      rolesPanelCss,
+      resultsCss,
+      savedCss,
+    ]
       .map(stripComments)
       .join('\n')
     const declarations = [...components.matchAll(/(?:gap|margin|padding)[\w-]*:\s*([^;]+);/g)]
@@ -250,5 +260,41 @@ describe('hierarchy and states (UX-4, UX-5)', () => {
   // UX-5, UX-6 (A11Y-3)
   it('leaves the focus indicator to the browser default', () => {
     expect(allCss).not.toMatch(/outline/)
+  })
+})
+
+// Spec 002 applies UX-1 to UX-6 to the saved-meetings section (task 29).
+describe('saved meetings section (UX-1, UX-3, UX-4, UX-5)', () => {
+  // UX-1
+  it('puts labels above their fields on the same grid as the other forms', () => {
+    expect(rule(savedCss, '.field')).toMatch(/flex-direction:\s*column/)
+    expect(rule(savedCss, '.form')).toMatch(/display:\s*grid/)
+    expect(rule(savedCss, '.form')).toMatch(/grid-template-columns:\s*repeat\(/)
+    expect(rule(savedCss, '.form')).toMatch(/align-items:\s*start/)
+  })
+
+  // UX-1, AC-40
+  it('stacks the fields and buttons into one column on a phone', () => {
+    const phone = stripComments(savedCss).match(/@media \(max-width: [\d.]+rem\)\s*\{([\s\S]*)\}\s*$/)
+    expect(phone).not.toBeNull()
+    expect(phone?.[1]).toMatch(/grid-template-columns:\s*1fr/)
+    expect(phone?.[1]).toMatch(/flex-direction:\s*column/)
+  })
+
+  // UX-4
+  it('groups the confirmation buttons in a row with token spacing', () => {
+    expect(rule(savedCss, '.confirmation')).toMatch(/display:\s*flex/)
+    expect(rule(savedCss, '.confirmation')).toMatch(/gap:\s*var\(--space-/)
+  })
+
+  // UX-5, A11Y-5
+  it('shows the meeting name error as prefixed text in the error colour', () => {
+    expect(rule(savedCss, '.error::before')).toMatch(/content:\s*'Error: '/)
+    expect(rule(savedCss, '.error')).toMatch(/color:\s*var\(--color-error\)/)
+  })
+
+  // UX-3
+  it('shows the empty state in the muted neutral', () => {
+    expect(rule(savedCss, '.empty')).toMatch(/color:\s*var\(--color-muted\)/)
   })
 })
