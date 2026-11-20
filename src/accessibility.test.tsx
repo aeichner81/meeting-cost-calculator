@@ -49,6 +49,7 @@ describe('labels (A11Y-1)', () => {
       'Minutes',
       'Recurrence',
       'Currency',
+      'Meeting name',
     ]) {
       expect(screen.getByLabelText(name)).toBeInTheDocument()
     }

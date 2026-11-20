@@ -37,7 +37,8 @@ interface StatusMessage {
   className?: string
 }
 
-const NO_LINES_MESSAGE = 'Add attendees to the meeting first.'
+// Also shown when saving a meeting with no lines (spec 002, AC-29).
+export const NO_LINES_MESSAGE = 'Add attendees to the meeting first.'
 const INVALID_MESSAGE = 'No cost calculated. Check the duration fields.'
 
 // Space-separated ids for aria-describedby, or undefined when there is nothing to describe.

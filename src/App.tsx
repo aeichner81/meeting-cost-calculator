@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react'
 import { addMeetingLine } from './domain/meeting'
+import { upsertMeeting } from './domain/savedMeetings'
+import type { SavedMeeting } from './domain/savedMeetings'
 import type { CurrencyCode } from './domain/currency'
 import type { MeetingLine } from './domain/types'
 import { CurrencySelect } from './components/CurrencySelect'
@@ -8,14 +10,19 @@ import type { MeetingSetup } from './components/DurationCalculator'
 import { MeetingBuilder } from './components/MeetingBuilder'
 import { RoleForm } from './components/RoleForm'
 import { RolesPanel } from './components/RolesPanel'
+import { SavedMeetings } from './components/SavedMeetings'
 import { usePersistedState } from './hooks/usePersistedState'
+import { useSavedMeetings } from './hooks/useSavedMeetings'
 import styles from './App.module.css'
 
 const EMPTY_SETUP: MeetingSetup = { hours: '', minutes: '', recurrence: 'once' }
 
 export function App() {
   const { data, setData, storageFailed } = usePersistedState()
-  // Meetings are not saved in v1, so this stays in memory only (AC-24).
+  // Kept under their own storage key, apart from roles and currency (spec 002, AC-39).
+  const { meetings, setMeetings } = useSavedMeetings()
+  // The working meeting stays in memory only and is cleared on reload (AC-24); saved
+  // meetings are separate copies (spec 002).
   const [lines, setLines] = useState<MeetingLine[]>([])
   // Tells the user when deleting a role removed its line from the meeting (AC-25).
   const [meetingNotice, setMeetingNotice] = useState('')
@@ -56,6 +63,15 @@ export function App() {
     if (remaining.length === 0) {
       keepSetup(EMPTY_SETUP)
     }
+  }
+
+  function readSetup(): MeetingSetup {
+    return setupRef.current
+  }
+
+  // The component has already asked before replacing a matching name (AC-30).
+  function saveMeeting(meeting: SavedMeeting) {
+    setMeetings((previous) => upsertMeeting(previous, meeting))
   }
 
   function changeCurrency(currency: CurrencyCode) {
@@ -111,6 +127,17 @@ export function App() {
             onSetupChange={keepSetup}
           />
         )}
+      </section>
+      <section aria-labelledby="saved-heading" className={styles.section}>
+        <h2 id="saved-heading">Saved meetings</h2>
+        <SavedMeetings
+          meetings={meetings}
+          roles={data.roles}
+          lines={lines}
+          currency={data.currency}
+          readSetup={readSetup}
+          onSave={saveMeeting}
+        />
       </section>
     </main>
   )

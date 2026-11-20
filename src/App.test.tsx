@@ -503,3 +503,160 @@ describe('persistence behaviours (AC-17, AC-18, AC-19, AC-24)', () => {
     expect(within(screen.getByRole('list')).getByText('Developer')).toBeInTheDocument()
   })
 })
+
+describe('saving a meeting (AC-27, AC-28, AC-29, AC-30)', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  async function addRole(user: ReturnType<typeof userEvent.setup>, name: string, salary: string) {
+    await user.type(screen.getByLabelText('Role name'), name)
+    await user.type(screen.getByLabelText('Annual salary'), salary)
+    await user.click(screen.getByRole('button', { name: 'Add role' }))
+  }
+
+  async function addToMeeting(
+    user: ReturnType<typeof userEvent.setup>,
+    role: string,
+    headcount: string,
+  ) {
+    await user.selectOptions(screen.getByLabelText('Role'), role)
+    await user.clear(screen.getByLabelText('Headcount'))
+    await user.type(screen.getByLabelText('Headcount'), headcount)
+    await user.click(screen.getByRole('button', { name: 'Add to meeting' }))
+  }
+
+  async function saveAs(user: ReturnType<typeof userEvent.setup>, name: string) {
+    await user.type(screen.getByLabelText('Meeting name'), name)
+    await user.click(screen.getByRole('button', { name: 'Save meeting' }))
+  }
+
+  function storedMeetings() {
+    return JSON.parse(localStorage.getItem('mcc:meetings:v1') ?? '[]')
+  }
+
+  it('has a Saved meetings section after the Meeting section', () => {
+    render(<App />)
+    const headings = screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)
+    expect(headings.indexOf('Saved meetings')).toBe(headings.indexOf('Meeting') + 1)
+  })
+
+  it('saves the working meeting with its lines, duration, recurrence and currency (AC-27)', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await user.selectOptions(screen.getByLabelText('Currency'), 'USD')
+    await addRole(user, 'Developer', '36400')
+    await addRole(user, 'Manager', '72800')
+    await addToMeeting(user, 'Developer', '3')
+    await addToMeeting(user, 'Manager', '1')
+    await user.type(screen.getByLabelText('Hours'), '1')
+    await user.type(screen.getByLabelText('Minutes'), '30')
+    await user.selectOptions(screen.getByLabelText('Recurrence'), 'weekly')
+
+    await saveAs(user, '  Weekly sync  ')
+
+    const [saved] = storedMeetings()
+    expect(saved).toMatchObject({
+      name: 'Weekly sync',
+      duration: { hours: 1, minutes: 30 },
+      recurrence: 'weekly',
+      currency: 'USD',
+    })
+    expect(saved.lines).toEqual([
+      expect.objectContaining({ roleName: 'Developer', headcount: 3 }),
+      expect.objectContaining({ roleName: 'Manager', headcount: 1 }),
+    ])
+    expect(screen.getByRole('status', { name: 'Saved meetings notice' })).toHaveTextContent(
+      'Saved meeting "Weekly sync".',
+    )
+  })
+
+  it('leaves the working meeting as it was after saving (AC-27)', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await addRole(user, 'Developer', '36400')
+    await addToMeeting(user, 'Developer', '2')
+    await user.type(screen.getByLabelText('Hours'), '1')
+    await saveAs(user, 'Standup')
+
+    expect(screen.getByRole('list', { name: 'Meeting lines' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Hours')).toHaveValue('1')
+  })
+
+  it('shows a name error and saves nothing for a blank name (AC-28)', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await addRole(user, 'Developer', '36400')
+    await addToMeeting(user, 'Developer', '2')
+    await user.type(screen.getByLabelText('Hours'), '1')
+    await saveAs(user, '   ')
+
+    expect(screen.getByText('Enter a meeting name.')).toBeInTheDocument()
+    expect(storedMeetings()).toEqual([])
+  })
+
+  it('shows the add-attendees message and saves nothing when there are no lines (AC-29)', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await addRole(user, 'Developer', '36400')
+    await user.type(screen.getByLabelText('Hours'), '1')
+    await saveAs(user, 'Standup')
+
+    expect(screen.getByRole('status', { name: 'Saved meetings notice' })).toHaveTextContent(
+      'Add attendees to the meeting first.',
+    )
+    expect(storedMeetings()).toEqual([])
+  })
+
+  it('shows the duration message and saves nothing when the duration is invalid (AC-29)', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await addRole(user, 'Developer', '36400')
+    await addToMeeting(user, 'Developer', '2')
+    await user.type(screen.getByLabelText('Minutes'), '75')
+    await saveAs(user, 'Standup')
+
+    expect(screen.getByRole('status', { name: 'Saved meetings notice' })).toHaveTextContent(
+      'Enter minutes as a whole number from 0 to 59.',
+    )
+    expect(storedMeetings()).toEqual([])
+  })
+
+  it('asks before replacing a meeting with the same name, and replaces it on confirm (AC-30)', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await addRole(user, 'Developer', '36400')
+    await addToMeeting(user, 'Developer', '2')
+    await user.type(screen.getByLabelText('Hours'), '1')
+    await saveAs(user, 'Weekly sync')
+
+    await user.clear(screen.getByLabelText('Hours'))
+    await user.type(screen.getByLabelText('Hours'), '3')
+    await saveAs(user, 'weekly sync')
+    expect(storedMeetings()[0].duration).toEqual({ hours: 1, minutes: 0 })
+
+    await user.click(screen.getByRole('button', { name: 'Replace' }))
+
+    const meetings = storedMeetings()
+    expect(meetings).toHaveLength(1)
+    expect(meetings[0]).toMatchObject({ name: 'weekly sync', duration: { hours: 3, minutes: 0 } })
+  })
+
+  it('keeps the existing meeting when replacing is cancelled (AC-30)', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await addRole(user, 'Developer', '36400')
+    await addToMeeting(user, 'Developer', '2')
+    await user.type(screen.getByLabelText('Hours'), '1')
+    await saveAs(user, 'Weekly sync')
+
+    await user.clear(screen.getByLabelText('Hours'))
+    await user.type(screen.getByLabelText('Hours'), '3')
+    await saveAs(user, 'Weekly sync')
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    const meetings = storedMeetings()
+    expect(meetings).toHaveLength(1)
+    expect(meetings[0]).toMatchObject({ name: 'Weekly sync', duration: { hours: 1, minutes: 0 } })
+  })
+})
